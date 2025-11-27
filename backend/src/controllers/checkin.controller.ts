@@ -1,6 +1,4 @@
 import type { Context } from "hono";
-import { getCookie, setCookie, deleteCookie } from "hono/cookie";
-import { sign } from "hono/jwt";
 
 export class CheckinController {
   static async getQRCode(c: Context) {
@@ -88,29 +86,7 @@ export class CheckinController {
       const company = claims.find((claim: any) => claim.ename === "company")?.value;
       const phone = claims.find((claim: any) => claim.ename === "phone")?.value;
 
-      const payload = {
-        email,
-        name,
-        exp: Math.floor(Date.now() / 1000) + 60 * 60,
-        iat: Math.floor(Date.now() / 1000),
-      };
-
-      const keyJson = JSON.parse(atob(env.JWK_PRIVATE_KEY));
-      const jwt = await sign(payload, keyJson, "RS256");
-
-      const existingJwt = getCookie(c, "jwt");
-      if (existingJwt) {
-        deleteCookie(c, "jwt");
-      }
-
-      setCookie(c, "jwt", jwt, {
-        httpOnly: true,
-        secure: true,
-        sameSite: "Lax",
-        path: "/",
-        maxAge: 60 * 60,
-      });
-
+   
       return c.json({ 
         inviterEmail: "a@moda.gov.tw",
         inviterName: "邀請者姓名",
