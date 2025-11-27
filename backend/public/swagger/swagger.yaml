@@ -1,0 +1,268 @@
+openapi: 3.0.0
+info:
+  title: 訪客註冊系統 API
+  version: 1.0.0
+  description: 訪客註冊系統 API 文件，包含取得資訊、發送 OTP 及註冊功能。
+servers:
+  - url: https://vistor.zeroflare.tw/api
+
+paths:
+  /checkin/qrcode:
+    get:
+      summary: 取得訪問者簽到 QRCode
+      description: 取得用於皮夾登入的 QRCode 及連結。
+      parameters:
+        - name: transactionId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: 本次登入流程的 Transaction ID
+          example: "f66ea4a9-aaaa-4e9a-a3bc-0a82ca1ea276"
+      responses:
+        "200":
+          description: 成功取得 QRCode
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  qrcodeImage:
+                    type: string
+                    description: 皮夾登入Qrcode
+                    example: "data:image/png;base64, xxxxx"
+                  authUri:
+                    type: string
+                    description: 皮夾登入網址
+                    example: "modadigitalwallet://authorize"
+  /checkin/result:
+    get:
+      summary: 檢查簽到狀態
+      description: 檢查訪客是否已完成簽到。
+      parameters:
+        - name: transactionId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: 本次登入流程的 Transaction ID
+          example: "f66ea4a9-aaaa-4e9a-a3bc-0a82ca1ea276"
+      responses:
+        "200":
+          description: 完成登入
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  inviterEmail:
+                    type: string
+                    example: "a@moda.gov.tw"
+                  inviterName:
+                    type: string
+                    example: "邀請者姓名"
+                  inviterDept:
+                    type: string
+                    example: "邀請者單位"
+                  inviterTitle:
+                    type: string
+                    example: "邀請者職稱"
+                  vistorEmail:
+                    type: string
+                    example: "hchou@company.com"
+                  vistorName:
+                    type: string
+                    example: "訪問者姓名"
+                  vistorDept:
+                    type: string
+                    example: "訪問者公司"
+                  vistorPhone:
+                    type: string
+                    example: "訪問者電話"
+                  meetingTime:
+                    type: string
+                    example: "會議時間"
+                  meetingRoom:
+                    type: string
+                    example: "會議室"
+        "400":
+          description: 等待登入
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Waiting for login"
+        "401":
+          description: 今日沒有會議
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Waiting for login"
+  /register/otp:
+    post:
+      summary: 發送 Email OTP
+      description: 發送驗證碼 (OTP) 到該 Email。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  description: 訪客 Email
+              required:
+                - email
+      responses:
+        "200":
+          description: OTP 發送成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "OTP sent successfully"
+  /register/qrcode:
+    post:
+      summary: 提交訪客註冊資料
+      description: 提交訪客的姓名、電話、單位及收到的 OTP 進行註冊。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  description: 訪客 email
+                  example: "test@example.com"
+                name:
+                  type: string
+                  description: 姓名
+                  example: "王小明"
+                phone:
+                  type: string
+                  description: 電話
+                  example: "0912345678"
+                unit:
+                  type: string
+                  description: 單位
+                  example: "小明有限公司"
+                otp:
+                  type: string
+                  description: Email 驗證碼
+                  example: "123456"
+              required:
+                - token
+                - name
+                - phone
+                - unit
+                - otp
+      responses:
+        "200":
+          description: 註冊成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Registration successful"
+                  qrcodeImage:
+                    type: string
+                    description: 皮夾登入Qrcode
+                    example: "data:image/png;base64, xxxxx"
+                  authUri:
+                    type: string
+                    description: 皮夾登入網址
+                    example: "modadigitalwallet://authorize"
+
+  /register/result:
+    get:
+      summary: 檢查皮夾註冊狀態
+      description: 檢查訪客是否已完成皮夾註冊。
+      parameters:
+        - in: query
+          name: token
+          schema:
+            type: string
+          required: true
+          description: 訪客 Token
+      responses:
+        "200":
+          description: 完成註冊
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Registration completed"
+        "400":
+          description: 等待註冊
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Waiting for registration"
+  /login/qrcode:
+    get:
+      summary: 取得登入 QRCode
+      description: 取得用於皮夾登入的 QRCode 及連結。
+      responses:
+        "200":
+          description: 成功取得 QRCode
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  qrcodeImage:
+                    type: string
+                    description: 皮夾登入Qrcode
+                    example: "data:image/png;base64, xxxxx"
+                  authUri:
+                    type: string
+                    description: 皮夾登入網址
+                    example: "modadigitalwallet://authorize"
+  /login/result:
+    get:
+      summary: 檢查皮夾登入狀態
+      description: 檢查訪客是否已完成皮夾登入。
+      responses:
+        "200":
+          description: 完成登入
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Login completed"
+        "400":
+          description: 等待登入
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Waiting for login"
