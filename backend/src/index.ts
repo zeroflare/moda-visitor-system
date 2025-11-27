@@ -1,9 +1,10 @@
 import { Hono } from "hono";
+import apiRoutes from "./routes";
+import { requestLogger } from "./middlewares/logger.middleware.js";
 
 const app = new Hono<{ Bindings: CloudflareBindings }>();
 
-app.get("/message", (c) => {
-  return c.text("Hello Hono!");
-});
+app.use("*", requestLogger);
+app.route("/api", apiRoutes);
 
 export default app;
