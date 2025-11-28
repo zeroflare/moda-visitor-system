@@ -198,12 +198,13 @@ paths:
       summary: 檢查皮夾註冊狀態
       description: 檢查訪客是否已完成皮夾註冊。
       parameters:
-        - in: query
-          name: token
+        - name: transactionId
+          in: query
+          required: true
           schema:
             type: string
-          required: true
-          description: 訪客 Token
+          description: 本次註冊流程的 Transaction ID
+          example: "f66ea4a9-aaaa-4e9a-a3bc-0a82ca1ea276"
       responses:
         "200":
           description: 完成註冊
@@ -232,14 +233,6 @@ paths:
     get:
       summary: 取得登入 QRCode
       description: 取得用於皮夾登入的 QRCode 及連結。
-      parameters:
-        - name: transactionId
-          in: query
-          required: true
-          schema:
-            type: string
-          description: 本次登入流程的 Transaction ID
-          example: "f66ea4a9-aaaa-4e9a-a3bc-0a82ca1ea276"
       responses:
         "200":
           description: 成功取得 QRCode
