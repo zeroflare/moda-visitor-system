@@ -215,6 +215,9 @@ paths:
                   message:
                     type: string
                     example: "Registration completed"
+                  credential:
+                    type: string
+                    example: "JWT"
         "400":
           description: 等待註冊
           content:
