@@ -1,5 +1,15 @@
 import { useState, useEffect, useRef } from 'react'
 import './App.css'
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  FieldSet,
+} from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 const API_BASE_URL = 'https://vistor.zeroflare.tw/api'
 
@@ -20,7 +30,7 @@ interface QRCodeResponse {
 
 interface RegistrationResult {
   message: string
-  [key: string]: any
+  [key: string]: unknown
 }
 
 function App() {
@@ -78,7 +88,7 @@ function App() {
         throw new Error(errorData.error || '發送驗證碼失敗')
       }
 
-      const data = await response.json()
+      await response.json()
       setOtpSent(true)
       setOtpCooldown(60) // 設置 60 秒冷卻期
       setOtpExpiry(600) // 設置 10 分鐘有效期
@@ -280,108 +290,120 @@ function App() {
       {loading && <p className="loading-message">載入中...</p>}
 
       {error && (
-        <div className="error-message">
-          <p>錯誤: {error}</p>
+        <div className="mb-6">
+          <FieldError>{error}</FieldError>
         </div>
       )}
 
       {!qrcodeImage && !registrationResult && (
         <form onSubmit={handleSubmit} className="registration-form">
-          <div className="form-group">
-            <label htmlFor="name">姓名 *</label>
-            <input
-              type="text"
-              id="name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              required
-            />
-          </div>
+          <FieldSet>
+            <FieldGroup>
+              <Field>
+                <FieldLabel htmlFor="name">姓名 *</FieldLabel>
+                <Input
+                  type="text"
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  required
+                />
+              </Field>
 
-          <div className="form-group">
-            <label htmlFor="email">電子信箱 *</label>
-            <div className="email-input-group">
-              <input
-                type="email"
-                id="email"
-                value={formData.email}
-                onChange={(e) => {
-                  setFormData({ ...formData, email: e.target.value })
-                  setOtpSent(false)
-                  setOtpExpiry(0)
-                }}
-                required
-              />
-              <button
-                type="button"
-                onClick={sendOTP}
-                disabled={sendingOTP || !formData.email || otpCooldown > 0}
-                className="otp-button"
-              >
-                {sendingOTP
-                  ? '發送中...'
-                  : otpCooldown > 0
-                    ? `重新發送 (${otpCooldown}s)`
-                    : '發送驗證碼'}
-              </button>
-            </div>
-            {otpSent && (
-              <p className="otp-sent-message">
-                驗證碼已發送至您的信箱
-                {otpExpiry > 0 && (
-                  <span className="otp-expiry">
-                    （有效期剩餘 {Math.floor(otpExpiry / 60)}:{(otpExpiry % 60).toString().padStart(2, '0')}）
-                  </span>
+              <Field>
+                <FieldLabel htmlFor="email">電子信箱 *</FieldLabel>
+                <div className="flex gap-2">
+                  <Input
+                    type="email"
+                    id="email"
+                    value={formData.email}
+                    onChange={(e) => {
+                      setFormData({ ...formData, email: e.target.value })
+                      setOtpSent(false)
+                      setOtpExpiry(0)
+                    }}
+                    className="flex-1"
+                    required
+                  />
+                  <Button
+                    type="button"
+                    onClick={sendOTP}
+                    disabled={sendingOTP || !formData.email || otpCooldown > 0}
+                    className="whitespace-nowrap"
+                  >
+                    {sendingOTP
+                      ? '發送中...'
+                      : otpCooldown > 0
+                        ? `重新發送 (${otpCooldown}s)`
+                        : '發送驗證碼'}
+                  </Button>
+                </div>
+                {otpSent && (
+                  <FieldDescription>
+                    驗證碼已發送至您的信箱
+                    {otpExpiry > 0 && (
+                      <span className="ml-1">
+                        （有效期剩餘 {Math.floor(otpExpiry / 60)}:{(otpExpiry % 60).toString().padStart(2, '0')}）
+                      </span>
+                    )}
+                  </FieldDescription>
                 )}
-              </p>
-            )}
-          </div>
+              </Field>
 
-          <div className="form-group">
-            <label htmlFor="otp">驗證碼 *</label>
-            <input
-              type="text"
-              id="otp"
-              value={formData.otp}
-              onChange={(e) => {
-                const value = e.target.value.replace(/\D/g, '') // 只允許數字
-                setFormData({ ...formData, otp: value })
-              }}
-              placeholder="請輸入 6 位數驗證碼"
-              maxLength={6}
-              required
-              disabled={!otpSent}
-            />
-            {!otpSent && (
-              <p className="form-hint">請先發送驗證碼至您的電子信箱</p>
-            )}
-          </div>
+              <Field>
+                <FieldLabel htmlFor="otp">驗證碼 *</FieldLabel>
+                <Input
+                  type="text"
+                  id="otp"
+                  value={formData.otp}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '') // 只允許數字
+                    setFormData({ ...formData, otp: value })
+                  }}
+                  placeholder="請輸入 6 位數驗證碼"
+                  maxLength={6}
+                  required
+                  disabled={!otpSent}
+                  aria-invalid={!otpSent && formData.otp.length > 0}
+                />
+                {!otpSent ? (
+                  <FieldDescription>請先發送驗證碼至您的電子信箱</FieldDescription>
+                ) : null}
+              </Field>
 
-          <div className="form-group">
-            <label htmlFor="phone">電話 *</label>
-            <input
-              type="tel"
-              id="phone"
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              required
-            />
-          </div>
+              <Field>
+                <FieldLabel htmlFor="phone">電話 *</FieldLabel>
+                <Input
+                  type="tel"
+                  id="phone"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  required
+                />
+              </Field>
 
-          <div className="form-group">
-            <label htmlFor="company">公司/單位 *</label>
-            <input
-              type="text"
-              id="company"
-              value={formData.company}
-              onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-              required
-            />
-          </div>
+              <Field>
+                <FieldLabel htmlFor="company">公司/單位 *</FieldLabel>
+                <Input
+                  type="text"
+                  id="company"
+                  value={formData.company}
+                  onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                  required
+                />
+              </Field>
 
-          <button type="submit" className="submit-button" disabled={loading || !otpSent}>
-            提交註冊
-          </button>
+              <Field>
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={loading || !otpSent}
+                >
+                  {loading ? '提交中...' : '提交註冊'}
+                </Button>
+              </Field>
+            </FieldGroup>
+          </FieldSet>
         </form>
       )}
 
@@ -414,9 +436,9 @@ function App() {
         <div className="qrcode-section">
           <h2 className="result-title">註冊成功！</h2>
           <p className="success-message">您的註冊已完成，歡迎使用訪客系統。</p>
-          <button className="back-button" onClick={resetRegistration}>
+          <Button variant="outline" className="w-full" onClick={resetRegistration}>
             返回註冊
-          </button>
+          </Button>
         </div>
       )}
     </div>
