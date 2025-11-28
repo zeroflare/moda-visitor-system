@@ -4,11 +4,20 @@ info:
   version: 1.0.0
   description: 訪客註冊系統 API 文件，包含取得資訊、發送 OTP 及註冊功能。
 servers:
-  - url: https://vistor.zeroflare.tw/api
+  - url: https://vistor.zeroflare.tw/api/
+tags:
+  - name: checkin
+    description: 簽到頁面 API
+  - name: register
+    description: 註冊頁面 API
+  - name: dashboard
+    description: 後台登入 API
 
 paths:
   /checkin/qrcode:
     get:
+      tags:
+        - checkin
       summary: 取得訪問者簽到 QRCode
       description: 取得用於皮夾登入的 QRCode 及連結。
       parameters:
@@ -37,6 +46,8 @@ paths:
                     example: "modadigitalwallet://authorize"
   /checkin/result:
     get:
+      tags:
+        - checkin
       summary: 檢查簽到狀態
       description: 檢查訪客是否已完成簽到。
       parameters:
@@ -107,6 +118,8 @@ paths:
                     example: "Waiting for login"
   /register/otp:
     post:
+      tags:
+        - register
       summary: 發送 Email OTP
       description: 發送驗證碼 (OTP) 到該 Email。
       requestBody:
@@ -134,6 +147,8 @@ paths:
                     example: "OTP sent successfully"
   /register/qrcode:
     post:
+      tags:
+        - register
       summary: 提交訪客註冊資料
       description: 提交訪客的姓名、電話、單位及收到的 OTP 進行註冊。
       requestBody:
@@ -192,9 +207,10 @@ paths:
                     type: string
                     description: 本次流程的 Transaction ID
                     example: "f66ea4a9-aaaa-4e9a-a3bc-0a82ca1ea276"
-
   /register/result:
     get:
+      tags:
+        - register
       summary: 檢查皮夾註冊狀態
       description: 檢查訪客是否已完成皮夾註冊。
       parameters:
@@ -229,8 +245,10 @@ paths:
                   message:
                     type: string
                     example: "Waiting for registration"
-  /login/qrcode:
+  /dashboard/login/qrcode:
     get:
+      tags:
+        - dashboard
       summary: 取得登入 QRCode
       description: 取得用於皮夾登入的 QRCode 及連結。
       responses:
@@ -249,8 +267,10 @@ paths:
                     type: string
                     description: 皮夾登入網址
                     example: "modadigitalwallet://authorize"
-  /login/result:
+  /dashboard/login/result:
     get:
+      tags:
+        - dashboard
       summary: 檢查皮夾登入狀態
       description: 檢查訪客是否已完成皮夾登入。
       responses:
