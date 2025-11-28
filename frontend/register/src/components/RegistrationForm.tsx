@@ -299,19 +299,20 @@ export function RegistrationForm({ onSubmit, onError }: RegistrationFormProps) {
                   </Button>
                 </div>
                 {otpSent && (
-                  <div className="flex items-center gap-2 mt-2">
-                    <Alert variant="success" className="py-2 px-3 flex-1">
-                      <Mail className="h-4 w-4" />
-                      <AlertDescription className="flex items-center gap-2">
-                        <span>驗證碼已發送至您的信箱</span>
-                        {otpExpiry > 0 && (
-                          <Badge variant="secondary" className="ml-auto">
-                            <Clock className="h-3 w-3 mr-1" />
-                            {Math.floor(otpExpiry / 60)}:
-                            {(otpExpiry % 60).toString().padStart(2, '0')}
-                          </Badge>
-                        )}
-                      </AlertDescription>
+                  <div className="mt-2">
+                    <Alert 
+                      variant="success" 
+                      className="py-2 px-3 flex items-center gap-2 [&>svg]:relative [&>svg]:left-0 [&>svg]:top-0 [&>svg~*]:pl-0 [&>svg+div]:translate-y-0"
+                    >
+                      <Mail className="h-4 w-4 flex-shrink-0" />
+                      <span className="flex-1 text-sm">驗證碼已發送至您的信箱</span>
+                      {otpExpiry > 0 && (
+                        <Badge variant="secondary" className="flex-shrink-0">
+                          <Clock className="h-3 w-3 mr-1" />
+                          {Math.floor(otpExpiry / 60)}:
+                          {(otpExpiry % 60).toString().padStart(2, '0')}
+                        </Badge>
+                      )}
                     </Alert>
                   </div>
                 )}
