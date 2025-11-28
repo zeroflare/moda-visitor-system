@@ -155,7 +155,7 @@ paths:
                   type: string
                   description: 電話
                   example: "0912345678"
-                unit:
+                company:
                   type: string
                   description: 單位
                   example: "小明有限公司"
@@ -188,6 +188,10 @@ paths:
                     type: string
                     description: 皮夾登入網址
                     example: "modadigitalwallet://authorize"
+                  transactionId:
+                    type: string
+                    description: 本次流程的 Transaction ID
+                    example: "f66ea4a9-aaaa-4e9a-a3bc-0a82ca1ea276"
 
   /register/result:
     get:
@@ -211,6 +215,9 @@ paths:
                   message:
                     type: string
                     example: "Registration completed"
+                  credential:
+                    type: string
+                    example: "JWT"
         "400":
           description: 等待註冊
           content:
@@ -225,6 +232,14 @@ paths:
     get:
       summary: 取得登入 QRCode
       description: 取得用於皮夾登入的 QRCode 及連結。
+      parameters:
+        - name: transactionId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: 本次登入流程的 Transaction ID
+          example: "f66ea4a9-aaaa-4e9a-a3bc-0a82ca1ea276"
       responses:
         "200":
           description: 成功取得 QRCode
