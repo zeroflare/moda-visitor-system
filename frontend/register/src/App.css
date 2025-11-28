@@ -237,11 +237,11 @@
   background-color: #475569;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(100, 116, 139, 0.4);
-  }
+}
 
 .back-button:active {
   transform: translateY(0);
-  }
+}
 
 .result-info {
   display: flex;
@@ -344,12 +344,12 @@
 
   .qrcode-section h2 {
     font-size: 1.1rem;
-}
+  }
 
   .qrcode-container {
     flex-direction: column;
     padding: 1rem;
-}
+  }
 
   .qrcode-divider {
     width: 100%;

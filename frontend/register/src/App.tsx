@@ -1,25 +1,18 @@
 import { useState, useEffect, useRef } from 'react'
 import './App.css'
 import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-  FieldSet,
-} from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
+  Card,
+  CardContent,
+  CardDescription,
+  CardTitle,
+} from '@/components/ui/card'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { CheckCircle2, AlertTriangle } from 'lucide-react'
+import { RegistrationNotice } from '@/components/RegistrationNotice'
+import { QRCodeSelection } from '@/components/QRCodeSelection'
+import { RegistrationForm } from '@/components/RegistrationForm'
 
 const API_BASE_URL = 'https://vistor.zeroflare.tw/api'
-
-interface RegistrationForm {
-  name: string
-  email: string
-  phone: string
-  company: string
-  otp: string
-}
 
 interface QRCodeResponse {
   message: string
@@ -34,138 +27,37 @@ interface RegistrationResult {
 }
 
 function App() {
-  const [formData, setFormData] = useState<RegistrationForm>({
-    name: '',
-    email: '',
-    phone: '',
-    company: '',
-    otp: '',
-  })
   const [transactionId, setTransactionId] = useState<string>('')
   const [qrcodeImage, setQrcodeImage] = useState<string>('')
-  const [registrationResult, setRegistrationResult] = useState<RegistrationResult | null>(null)
-  const [loading, setLoading] = useState<boolean>(false)
-  const [sendingOTP, setSendingOTP] = useState<boolean>(false)
+  const [authUri, setAuthUri] = useState<string>('')
+  const [registrationResult, setRegistrationResult] =
+    useState<RegistrationResult | null>(null)
   const [error, setError] = useState<string>('')
-  const [otpSent, setOtpSent] = useState<boolean>(false)
-  const [otpCooldown, setOtpCooldown] = useState<number>(0) // OTP 發送冷卻時間（秒）
-  const [otpExpiry, setOtpExpiry] = useState<number>(0) // OTP 有效期倒計時（秒）
+  const [qrcodeExpiry, setQrcodeExpiry] = useState<number>(0) // QRCode 有效期倒計時（秒）
   const pollingIntervalRef = useRef<number | null>(null)
-  const cooldownIntervalRef = useRef<number | null>(null)
-  const expiryIntervalRef = useRef<number | null>(null)
+  const qrcodeExpiryIntervalRef = useRef<number | null>(null)
 
-  // 發送 OTP (POST /register/otp)
-  const sendOTP = async () => {
-    if (!formData.email) {
-      setError('請輸入電子信箱')
-      return
-    }
-
-    if (otpCooldown > 0) {
-      setError(`請稍後再試，每分鐘僅能寄送一次驗證碼（剩餘 ${otpCooldown} 秒）`)
-      return
-    }
-
-    setSendingOTP(true)
+  // 處理註冊表單提交成功
+  const handleRegistrationSubmit = (data: QRCodeResponse) => {
+    setQrcodeImage(data.qrcodeImage)
+    setTransactionId(data.transactionId)
+    setAuthUri(data.authUri)
+    setQrcodeExpiry(300) // 設置 5 分鐘有效期
     setError('')
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/register/otp`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email: formData.email }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        if (response.status === 429) {
-          // 冷卻期錯誤
-          setOtpCooldown(60)
-          throw new Error(errorData.error || '請稍後再試，每分鐘僅能寄送一次驗證碼')
-        }
-        throw new Error(errorData.error || '發送驗證碼失敗')
-      }
-
-      await response.json()
-      setOtpSent(true)
-      setOtpCooldown(60) // 設置 60 秒冷卻期
-      setOtpExpiry(600) // 設置 10 分鐘有效期
-      setError('')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '發生錯誤')
-    } finally {
-      setSendingOTP(false)
-    }
   }
 
-  // 提交註冊表單 (POST /register/qrcode)
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    // 驗證必填欄位
-    if (!formData.name || !formData.email || !formData.phone || !formData.company || !formData.otp) {
-      setError('請填寫所有必填欄位')
-      return
-    }
-
-    if (!otpSent) {
-      setError('請先發送並輸入驗證碼')
-      return
-    }
-
-    if (otpExpiry <= 0) {
-      setError('驗證碼已過期，請重新發送')
-      return
-    }
-
-    setLoading(true)
-    setError('')
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/register/qrcode`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          company: formData.company,
-          otp: formData.otp,
-        }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || '註冊失敗')
-      }
-
-      const data: QRCodeResponse = await response.json()
-      setQrcodeImage(data.qrcodeImage)
-      setTransactionId(data.transactionId)
-      setError('')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '發生錯誤')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // OTP 冷卻期倒計時
+  // QRCode 有效期倒計時
   useEffect(() => {
-    if (otpCooldown <= 0) {
-      if (cooldownIntervalRef.current) {
-        clearInterval(cooldownIntervalRef.current)
-        cooldownIntervalRef.current = null
+    if (qrcodeExpiry <= 0 || !qrcodeImage) {
+      if (qrcodeExpiryIntervalRef.current) {
+        clearInterval(qrcodeExpiryIntervalRef.current)
+        qrcodeExpiryIntervalRef.current = null
       }
       return
     }
 
-    cooldownIntervalRef.current = setInterval(() => {
-      setOtpCooldown((prev) => {
+    qrcodeExpiryIntervalRef.current = setInterval(() => {
+      setQrcodeExpiry(prev => {
         if (prev <= 1) {
           return 0
         }
@@ -174,38 +66,11 @@ function App() {
     }, 1000)
 
     return () => {
-      if (cooldownIntervalRef.current) {
-        clearInterval(cooldownIntervalRef.current)
+      if (qrcodeExpiryIntervalRef.current) {
+        clearInterval(qrcodeExpiryIntervalRef.current)
       }
     }
-  }, [otpCooldown])
-
-  // OTP 有效期倒計時
-  useEffect(() => {
-    if (otpExpiry <= 0 || !otpSent) {
-      if (expiryIntervalRef.current) {
-        clearInterval(expiryIntervalRef.current)
-        expiryIntervalRef.current = null
-      }
-      return
-    }
-
-    expiryIntervalRef.current = setInterval(() => {
-      setOtpExpiry((prev) => {
-        if (prev <= 1) {
-          setOtpSent(false)
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
-
-    return () => {
-      if (expiryIntervalRef.current) {
-        clearInterval(expiryIntervalRef.current)
-      }
-    }
-  }, [otpExpiry, otpSent])
+  }, [qrcodeExpiry, qrcodeImage])
 
   // 輪詢檢查註冊狀態 (GET /register/result)
   useEffect(() => {
@@ -215,7 +80,9 @@ function App() {
 
     const checkStatus = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/register/result?transactionId=${transactionId}`)
+        const response = await fetch(
+          `${API_BASE_URL}/register/result?transactionId=${transactionId}`
+        )
         if (response.ok) {
           const data: RegistrationResult = await response.json()
           setRegistrationResult(data)
@@ -250,197 +117,59 @@ function App() {
     }
   }, [transactionId, registrationResult])
 
-  // 重置註冊狀態
-  const resetRegistration = () => {
-    // 停止所有定時器
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current)
-      pollingIntervalRef.current = null
-    }
-    if (cooldownIntervalRef.current) {
-      clearInterval(cooldownIntervalRef.current)
-      cooldownIntervalRef.current = null
-    }
-    if (expiryIntervalRef.current) {
-      clearInterval(expiryIntervalRef.current)
-      expiryIntervalRef.current = null
-    }
-
-    // 重置狀態
-    setFormData({
-      name: '',
-      email: '',
-      phone: '',
-      company: '',
-      otp: '',
-    })
-    setTransactionId('')
-    setQrcodeImage('')
-    setRegistrationResult(null)
-    setError('')
-    setOtpSent(false)
-    setOtpCooldown(0)
-    setOtpExpiry(0)
-  }
-
   return (
-    <div className="app-container">
-      <h1>訪客註冊</h1>
-
-      {loading && <p className="loading-message">載入中...</p>}
-
-      {error && (
-        <div className="mb-6">
-          <FieldError>{error}</FieldError>
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 py-8 px-4">
+      <div className="mx-auto max-w-2xl space-y-6">
+        <div className="text-center space-y-2">
+          <h1 className="text-4xl font-bold tracking-tight">訪客註冊</h1>
         </div>
-      )}
 
-      {!qrcodeImage && !registrationResult && (
-        <form onSubmit={handleSubmit} className="registration-form">
-          <FieldSet>
-            <FieldGroup>
-              <Field>
-                <FieldLabel htmlFor="name">姓名 *</FieldLabel>
-                <Input
-                  type="text"
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                />
-              </Field>
+        {error && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>錯誤</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-              <Field>
-                <FieldLabel htmlFor="email">電子信箱 *</FieldLabel>
-                <div className="flex gap-2">
-                  <Input
-                    type="email"
-                    id="email"
-                    value={formData.email}
-                    onChange={(e) => {
-                      setFormData({ ...formData, email: e.target.value })
-                      setOtpSent(false)
-                      setOtpExpiry(0)
-                    }}
-                    className="flex-1"
-                    required
-                  />
-                  <Button
-                    type="button"
-                    onClick={sendOTP}
-                    disabled={sendingOTP || !formData.email || otpCooldown > 0}
-                    className="whitespace-nowrap"
-                  >
-                    {sendingOTP
-                      ? '發送中...'
-                      : otpCooldown > 0
-                        ? `重新發送 (${otpCooldown}s)`
-                        : '發送驗證碼'}
-                  </Button>
+        {!qrcodeImage && !registrationResult && (
+          <>
+            <RegistrationNotice />
+            <RegistrationForm
+              onSubmit={handleRegistrationSubmit}
+              onError={setError}
+            />
+          </>
+        )}
+
+        {qrcodeImage && !registrationResult && (
+          <QRCodeSelection
+            qrcodeImage={qrcodeImage}
+            qrcodeExpiry={qrcodeExpiry}
+            authUri={authUri}
+          />
+        )}
+
+        {registrationResult && (
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex flex-col items-center justify-center space-y-4 py-8">
+                <div className="rounded-full bg-green-100 dark:bg-green-900/20 p-4">
+                  <CheckCircle2 className="h-12 w-12 text-green-600 dark:text-green-400" />
                 </div>
-                {otpSent && (
-                  <FieldDescription>
-                    驗證碼已發送至您的信箱
-                    {otpExpiry > 0 && (
-                      <span className="ml-1">
-                        （有效期剩餘 {Math.floor(otpExpiry / 60)}:{(otpExpiry % 60).toString().padStart(2, '0')}）
-                      </span>
-                    )}
-                  </FieldDescription>
-                )}
-              </Field>
-
-              <Field>
-                <FieldLabel htmlFor="otp">驗證碼 *</FieldLabel>
-                <Input
-                  type="text"
-                  id="otp"
-                  value={formData.otp}
-                  onChange={(e) => {
-                    const value = e.target.value.replace(/\D/g, '') // 只允許數字
-                    setFormData({ ...formData, otp: value })
-                  }}
-                  placeholder="請輸入 6 位數驗證碼"
-                  maxLength={6}
-                  required
-                  disabled={!otpSent}
-                  aria-invalid={!otpSent && formData.otp.length > 0}
-                />
-                {!otpSent ? (
-                  <FieldDescription>請先發送驗證碼至您的電子信箱</FieldDescription>
-                ) : null}
-              </Field>
-
-              <Field>
-                <FieldLabel htmlFor="phone">電話 *</FieldLabel>
-                <Input
-                  type="tel"
-                  id="phone"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  required
-                />
-              </Field>
-
-              <Field>
-                <FieldLabel htmlFor="company">公司/單位 *</FieldLabel>
-                <Input
-                  type="text"
-                  id="company"
-                  value={formData.company}
-                  onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                  required
-                />
-              </Field>
-
-              <Field>
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={loading || !otpSent}
-                >
-                  {loading ? '提交中...' : '提交註冊'}
-                </Button>
-              </Field>
-            </FieldGroup>
-          </FieldSet>
-        </form>
-      )}
-
-      {qrcodeImage && !registrationResult && (
-        <div className="qrcode-section">
-          <div className="qrcode-container">
-            <div className="qrcode-left">
-              <img src={qrcodeImage} alt="註冊 QRCode" />
-              <p className="qrcode-instruction">請使用數位憑證皮夾 App 掃描此 QRCode 完成註冊</p>
-            </div>
-            <div className="qrcode-divider"></div>
-            <div className="qrcode-right">
-              <div className="reminder-section">
-                <h3>註冊提醒與須知</h3>
-                <div className="reminder-items">
-                  <div className="reminder-item">
-                    <p>請務必提前下載「數位憑證皮夾 App」，以便順利完成註冊手續。</p>
-                  </div>
-                  <div className="reminder-item">
-                    <p>請使用數位憑證皮夾 App 掃描上方 QRCode 完成註冊。</p>
-                  </div>
+                <div className="text-center space-y-2">
+                  <CardTitle className="text-2xl text-green-600 dark:text-green-400">
+                    註冊成功！
+                  </CardTitle>
+                  <CardDescription className="text-base">
+                    您的註冊已完成，期待您的到來！
+                  </CardDescription>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {registrationResult && (
-        <div className="qrcode-section">
-          <h2 className="result-title">註冊成功！</h2>
-          <p className="success-message">您的註冊已完成，歡迎使用訪客系統。</p>
-          <Button variant="outline" className="w-full" onClick={resetRegistration}>
-            返回註冊
-          </Button>
-        </div>
-      )}
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   )
 }
