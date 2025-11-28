@@ -20,7 +20,7 @@ export function RegistrationNotice() {
           <div className="grid grid-cols-2 gap-6">
             <div className="flex flex-col items-center space-y-3">
               <img
-                src="/androidQrcode.png"
+                src={`${import.meta.env.BASE_URL}androidQrcode.png`}
                 alt="Android QRCode"
                 className="w-32 h-32 object-contain"
               />
@@ -31,7 +31,7 @@ export function RegistrationNotice() {
                 className="block"
               >
                 <img
-                  src="/googleplay.png"
+                  src={`${import.meta.env.BASE_URL}googleplay.png`}
                   alt="Google Play"
                   className="h-10 w-auto object-contain"
                 />
@@ -42,7 +42,7 @@ export function RegistrationNotice() {
             </div>
             <div className="flex flex-col items-center space-y-3">
               <img
-                src="/iosQrcode.png"
+                src={`${import.meta.env.BASE_URL}iosQrcode.png`}
                 alt="iOS QRCode"
                 className="w-32 h-32 object-contain"
               />
@@ -53,7 +53,7 @@ export function RegistrationNotice() {
                 className="block"
               >
                 <img
-                  src="/applestore.png"
+                  src={`${import.meta.env.BASE_URL}applestore.png`}
                   alt="App Store"
                   className="h-10 w-auto object-contain"
                 />
