@@ -6,3 +6,8 @@ services:
       - "80:80"
     env_file:
       - backend/.env
+    volumes:
+      - wrangler-data:/app/.wrangler
+
+volumes:
+  wrangler-data:
