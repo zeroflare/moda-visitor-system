@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import {
   Field,
   FieldDescription,
+  FieldError,
   FieldGroup,
   FieldLabel,
   FieldSet,
@@ -55,14 +56,39 @@ export function RegistrationForm({ onSubmit, onError }: RegistrationFormProps) {
   const [otpSent, setOtpSent] = useState<boolean>(false)
   const [otpCooldown, setOtpCooldown] = useState<number>(0) // OTP 發送冷卻時間（秒）
   const [otpExpiry, setOtpExpiry] = useState<number>(0) // OTP 有效期倒計時（秒）
+  const [fieldErrors, setFieldErrors] = useState<{
+    email?: string
+    phone?: string
+  }>({})
   const cooldownIntervalRef = useRef<number | null>(null)
   const expiryIntervalRef = useRef<number | null>(null)
+
+  // Email 格式驗證
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return emailRegex.test(email)
+  }
+
+  // 手機號驗證：09 開頭，共十碼
+  const validatePhone = (phone: string): boolean => {
+    const phoneRegex = /^09\d{8}$/
+    return phoneRegex.test(phone)
+  }
 
   // 發送 OTP (POST /register/otp)
   const sendOTP = async () => {
     if (!formData.email) {
       const errorMsg = '請輸入電子信箱'
       setError(errorMsg)
+      setFieldErrors({ ...fieldErrors, email: errorMsg })
+      onError?.(errorMsg)
+      return
+    }
+
+    if (!validateEmail(formData.email)) {
+      const errorMsg = '請輸入有效的電子信箱格式'
+      setError(errorMsg)
+      setFieldErrors({ ...fieldErrors, email: errorMsg })
       onError?.(errorMsg)
       return
     }
@@ -103,6 +129,7 @@ export function RegistrationForm({ onSubmit, onError }: RegistrationFormProps) {
       setOtpCooldown(60) // 設置 60 秒冷卻期
       setOtpExpiry(600) // 設置 10 分鐘有效期
       setError('')
+      setFieldErrors({ ...fieldErrors, email: undefined }) // 清除 email 錯誤
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : '發生錯誤'
       setError(errorMsg)
@@ -116,6 +143,9 @@ export function RegistrationForm({ onSubmit, onError }: RegistrationFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    // 清除之前的錯誤
+    const newFieldErrors: { email?: string; phone?: string } = {}
+
     // 驗證必填欄位
     if (
       !formData.name ||
@@ -125,6 +155,25 @@ export function RegistrationForm({ onSubmit, onError }: RegistrationFormProps) {
       !formData.otp
     ) {
       const errorMsg = '請填寫所有必填欄位'
+      setError(errorMsg)
+      onError?.(errorMsg)
+      return
+    }
+
+    // 驗證 Email 格式
+    if (!validateEmail(formData.email)) {
+      newFieldErrors.email = '請輸入有效的電子信箱格式'
+    }
+
+    // 驗證手機號格式
+    if (!validatePhone(formData.phone)) {
+      newFieldErrors.phone = '請輸入有效的手機號碼（09 開頭，共十碼）'
+    }
+
+    // 如果有欄位驗證錯誤，顯示錯誤並返回
+    if (Object.keys(newFieldErrors).length > 0) {
+      setFieldErrors(newFieldErrors)
+      const errorMsg = '請修正表單錯誤後再提交'
       setError(errorMsg)
       onError?.(errorMsg)
       return
@@ -257,6 +306,8 @@ export function RegistrationForm({ onSubmit, onError }: RegistrationFormProps) {
                   onChange={e =>
                     setFormData({ ...formData, name: e.target.value })
                   }
+                  placeholder="請輸入您的姓名"
+                  maxLength={50}
                   required
                 />
               </Field>
@@ -269,12 +320,29 @@ export function RegistrationForm({ onSubmit, onError }: RegistrationFormProps) {
                     id="email"
                     value={formData.email}
                     onChange={e => {
-                      setFormData({ ...formData, email: e.target.value })
+                      const value = e.target.value
+                      setFormData({ ...formData, email: value })
                       setOtpSent(false)
                       setOtpExpiry(0)
+                      // 清除錯誤當用戶開始輸入時
+                      if (fieldErrors.email) {
+                        setFieldErrors({ ...fieldErrors, email: undefined })
+                      }
+                    }}
+                    onBlur={() => {
+                      if (formData.email && !validateEmail(formData.email)) {
+                        setFieldErrors({
+                          ...fieldErrors,
+                          email: '請輸入有效的電子信箱格式',
+                        })
+                      } else if (formData.email && validateEmail(formData.email)) {
+                        setFieldErrors({ ...fieldErrors, email: undefined })
+                      }
                     }}
                     className="flex-1"
+                    placeholder="example@email.com"
                     required
+                    aria-invalid={!!fieldErrors.email}
                   />
                   <Button
                     type="button"
@@ -298,6 +366,9 @@ export function RegistrationForm({ onSubmit, onError }: RegistrationFormProps) {
                     )}
                   </Button>
                 </div>
+                {fieldErrors.email && (
+                  <FieldError>{fieldErrors.email}</FieldError>
+                )}
                 {otpSent && (
                   <div className="mt-2">
                     <Alert 
@@ -347,11 +418,32 @@ export function RegistrationForm({ onSubmit, onError }: RegistrationFormProps) {
                   type="tel"
                   id="phone"
                   value={formData.phone}
-                  onChange={e =>
-                    setFormData({ ...formData, phone: e.target.value })
-                  }
+                  onChange={e => {
+                    const value = e.target.value.replace(/\D/g, '') // 只允許數字
+                    setFormData({ ...formData, phone: value })
+                    // 清除錯誤當用戶開始輸入時
+                    if (fieldErrors.phone) {
+                      setFieldErrors({ ...fieldErrors, phone: undefined })
+                    }
+                  }}
+                  onBlur={() => {
+                    if (formData.phone && !validatePhone(formData.phone)) {
+                      setFieldErrors({
+                        ...fieldErrors,
+                        phone: '請輸入有效的手機號碼（09 開頭，共十碼）',
+                      })
+                    } else if (formData.phone && validatePhone(formData.phone)) {
+                      setFieldErrors({ ...fieldErrors, phone: undefined })
+                    }
+                  }}
+                  placeholder="請輸入您的手機號碼 09 開頭"
+                  maxLength={10}
                   required
+                  aria-invalid={!!fieldErrors.phone}
                 />
+                {fieldErrors.phone && (
+                  <FieldError>{fieldErrors.phone}</FieldError>
+                )}
               </Field>
 
               <Field>
@@ -363,6 +455,8 @@ export function RegistrationForm({ onSubmit, onError }: RegistrationFormProps) {
                   onChange={e =>
                     setFormData({ ...formData, company: e.target.value })
                   }
+                  placeholder="請輸入您的公司或單位名稱"
+                  maxLength={100}
                   required
                 />
               </Field>
