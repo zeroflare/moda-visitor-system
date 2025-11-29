@@ -1,4 +1,5 @@
 import * as React from "react"
+import { Link, useLocation } from "react-router-dom"
 
 import {
   Sidebar,
@@ -14,78 +15,64 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 
-type Page = 'raw-data' | 'processed-data' | 'user-management' | null
-
-interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
-  onNavigate?: (page: Page) => void
-}
-
 const data = {
   navMain: [
     {
       title: "數據列表",
-      url: "#",
       items: [
         {
           title: "原始資料表",
-          url: "#",
-          page: 'raw-data' as Page,
+          path: "/raw-data",
         },
         {
           title: "整理後資料表",
-          url: "#",
-          page: 'processed-data' as Page,
+          path: "/processed-data",
         },
         {
           title: "憑證列表",
-          url: "#",
-          page: null,
+          path: "#",
         },
       ],
     },
     {
       title: "帳號與安全",
-      url: "#",
       items: [
         {
           title: "人員管理",
-          url: "#",
-          page: 'user-management' as Page,
+          path: "/user-management",
         },
         {
           title: "操作紀錄",
-          url: "#",
-          page: null,
+          path: "#",
         },
       ],
     },
     {
       title: "系統配置",
-      url: "#",
       items: [
         {
           title: "參數設定",
-          url: "#",
-          page: null,
+          path: "#",
         },
         {
           title: "郵件模板",
-          url: "#",
-          page: null,
+          path: "#",
         },
       ],
     },
   ],
 }
 
-export function AppSidebar({ onNavigate, ...props }: AppSidebarProps) {
+export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
+  const location = useLocation()
+
   return (
     <Sidebar {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <a href="#">
+              <Link to="/raw-data">
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg">
                   <img src="/moda_logo.png" alt="moda" className="h-full w-full object-contain" />
                 </div>
@@ -93,7 +80,7 @@ export function AppSidebar({ onNavigate, ...props }: AppSidebarProps) {
                   <span className="font-medium">數位發展部</span>
                   <span className="">訪客系統</span>
                 </div>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
@@ -104,26 +91,23 @@ export function AppSidebar({ onNavigate, ...props }: AppSidebarProps) {
             {data.navMain.map((item) => (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton asChild>
-                  <a href={item.url} className="font-medium">
-                    {item.title}
-                  </a>
+                  <span className="font-medium">{item.title}</span>
                 </SidebarMenuButton>
                 {item.items?.length ? (
                   <SidebarMenuSub>
                     {item.items.map((subItem) => (
                       <SidebarMenuSubItem key={subItem.title}>
-                        <SidebarMenuSubButton asChild>
-                          <a
-                            href={subItem.url}
-                            onClick={(e) => {
-                              e.preventDefault()
-                              if (onNavigate && subItem.page !== undefined) {
-                                onNavigate(subItem.page)
-                              }
-                            }}
-                          >
-                            {subItem.title}
-                          </a>
+                        <SidebarMenuSubButton 
+                          asChild 
+                          isActive={location.pathname === subItem.path}
+                        >
+                          {subItem.path === "#" ? (
+                            <span>{subItem.title}</span>
+                          ) : (
+                            <Link to={subItem.path}>
+                              {subItem.title}
+                            </Link>
+                          )}
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
                     ))}

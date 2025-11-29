@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import './App.css'
 import { AppSidebar } from '@/components/app-sidebar'
 import {
@@ -15,59 +16,56 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from '@/components/ui/sidebar'
+import { Login } from '@/pages/Login'
 import { RawDataTable } from '@/pages/RawDataTable'
 import { ProcessedDataTable } from '@/pages/ProcessedDataTable'
 import { UserManagement } from '@/pages/UserManagement'
 
-type Page = 'raw-data' | 'processed-data' | 'user-management' | null
-
 function App() {
-  const [currentPage, setCurrentPage] = useState<Page>(null)
+  const [isAuthenticated, setIsAuthenticated] = useState(true)
 
-  const getBreadcrumb = () => {
-    switch (currentPage) {
-      case 'raw-data':
-        return {
-          parent: '數據列表',
-          current: '原始資料表',
-        }
-      case 'processed-data':
-        return {
-          parent: '數據列表',
-          current: '整理後資料表',
-        }
-      case 'user-management':
-        return {
-          parent: '帳號與安全',
-          current: '人員管理',
-        }
-      default:
-        return {
-          parent: '',
-          current: 'Dashboard',
-        }
-    }
+  const handleLogin = (email: string, otp: string) => {
+    console.log('Login attempt:', email, otp)
+    setIsAuthenticated(true)
   }
 
-  const renderPage = () => {
-    switch (currentPage) {
-      case 'raw-data':
-        return <RawDataTable />
-      case 'processed-data':
-        return <ProcessedDataTable />
-      case 'user-management':
-        return <UserManagement />
-      default:
-        return (
-          <div className="flex flex-1 flex-col gap-4 p-4">
-            <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-              <div className="bg-muted/50 aspect-video rounded-xl" />
-              <div className="bg-muted/50 aspect-video rounded-xl" />
-              <div className="bg-muted/50 aspect-video rounded-xl" />
-            </div>
-            <div className="bg-muted/50 min-h-[100vh] flex-1 rounded-xl md:min-h-min" />
-          </div>
-        )
+  if (!isAuthenticated) {
+    return <Login onLogin={handleLogin} />
+  }
+
+  return (
+    <Routes>
+      <Route path="/login" element={<Login onLogin={handleLogin} />} />
+      <Route path="/*" element={<DashboardLayout />} />
+    </Routes>
+  )
+}
+
+function DashboardLayout() {
+  const location = useLocation()
+
+  const getBreadcrumb = () => {
+    if (location.pathname === '/raw-data' || location.pathname === '/') {
+      return {
+        parent: '數據列表',
+        current: '原始資料表',
+      }
+    }
+    if (location.pathname === '/processed-data') {
+      return {
+        parent: '數據列表',
+        current: '整理後資料表',
+      }
+    }
+    if (location.pathname === '/user-management') {
+      return {
+        parent: '帳號與安全',
+        current: '人員管理',
+      }
+    }
+    return {
+      parent: '',
+      current: 'Dashboard',
     }
   }
 
@@ -75,7 +73,7 @@ function App() {
 
   return (
     <SidebarProvider>
-      <AppSidebar onNavigate={setCurrentPage} />
+      <AppSidebar />
       <SidebarInset>
         <header className="flex h-16 shrink-0 items-center gap-2 border-b">
           <div className="flex items-center gap-2 px-3">
@@ -98,7 +96,12 @@ function App() {
             </Breadcrumb>
           </div>
         </header>
-        {renderPage()}
+        <Routes>
+          <Route path="/" element={<Navigate to="/raw-data" replace />} />
+          <Route path="/raw-data" element={<RawDataTable />} />
+          <Route path="/processed-data" element={<ProcessedDataTable />} />
+          <Route path="/user-management" element={<UserManagement />} />
+        </Routes>
       </SidebarInset>
     </SidebarProvider>
   )
