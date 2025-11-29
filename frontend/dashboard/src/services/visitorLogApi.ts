@@ -1,0 +1,214 @@
+// 假資料模擬 API
+// const API_BASE_URL = '/api/dashboard/vistorlogs' // 未來使用真實 API 時啟用
+
+// 模擬延遲
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
+export interface VisitorLog {
+  checkinTimestamp: string
+  checkoutTimestamp: string | null
+  inviterEmail: string
+  inviterName: string
+  inviterDept: string
+  inviterTitle: string
+  vistorEmail: string
+  vistorName: string
+  vistorDept: string
+  vistorPhone: string
+  meetingTime: string
+  meetingName: string
+  meetingRoom: string
+}
+
+// 假資料儲存
+const mockVisitorLogs: VisitorLog[] = [
+  {
+    checkinTimestamp: '2025-01-15T09:30:00Z',
+    checkoutTimestamp: '2025-01-15T14:20:00Z',
+    inviterEmail: 'a@moda.gov.tw',
+    inviterName: '張三',
+    inviterDept: '數位發展部',
+    inviterTitle: '處長',
+    vistorEmail: 'hchou@company.com',
+    vistorName: '周小明',
+    vistorDept: 'ABC 科技公司',
+    vistorPhone: '0912345678',
+    meetingTime: '2025-01-15 10:00',
+    meetingName: '數位轉型會議',
+    meetingRoom: '會議室 A',
+  },
+  {
+    checkinTimestamp: '2025-01-15T09:35:00Z',
+    checkoutTimestamp: '2025-01-15T12:00:00Z',
+    inviterEmail: 'b@moda.gov.tw',
+    inviterName: '李四',
+    inviterDept: '數位發展部',
+    inviterTitle: '副處長',
+    vistorEmail: 'wang@company.com',
+    vistorName: '王美麗',
+    vistorDept: 'XYZ 企業',
+    vistorPhone: '0923456789',
+    meetingTime: '2025-01-15 11:00',
+    meetingName: '專案討論',
+    meetingRoom: '會議室 B',
+  },
+  {
+    checkinTimestamp: '2025-01-15T10:00:00Z',
+    checkoutTimestamp: '2025-01-15T16:00:00Z',
+    inviterEmail: 'c@moda.gov.tw',
+    inviterName: '王五',
+    inviterDept: '數位發展部',
+    inviterTitle: '組長',
+    vistorEmail: 'chen@company.com',
+    vistorName: '陳大華',
+    vistorDept: 'DEF 資訊公司',
+    vistorPhone: '0934567890',
+    meetingTime: '2025-01-15 14:00',
+    meetingName: '技術交流',
+    meetingRoom: '會議室 C',
+  },
+  {
+    checkinTimestamp: '2025-01-16T08:45:00Z',
+    checkoutTimestamp: null,
+    inviterEmail: 'd@moda.gov.tw',
+    inviterName: '趙六',
+    inviterDept: '數位發展部',
+    inviterTitle: '專員',
+    vistorEmail: 'liu@company.com',
+    vistorName: '劉小芳',
+    vistorDept: 'GHI 顧問公司',
+    vistorPhone: '0945678901',
+    meetingTime: '2025-01-16 09:00',
+    meetingName: '業務洽談',
+    meetingRoom: '會議室 D',
+  },
+  {
+    checkinTimestamp: '2025-01-16T13:20:00Z',
+    checkoutTimestamp: '2025-01-16T17:30:00Z',
+    inviterEmail: 'e@moda.gov.tw',
+    inviterName: '孫七',
+    inviterDept: '數位發展部',
+    inviterTitle: '主任',
+    vistorEmail: 'wu@company.com',
+    vistorName: '吳大偉',
+    vistorDept: 'JKL 科技',
+    vistorPhone: '0956789012',
+    meetingTime: '2025-01-16 14:00',
+    meetingName: '產品展示',
+    meetingRoom: '會議室 E',
+  },
+  {
+    checkinTimestamp: '2025-01-17T08:30:00Z',
+    checkoutTimestamp: '2025-01-17T12:15:00Z',
+    inviterEmail: 'f@moda.gov.tw',
+    inviterName: '錢八',
+    inviterDept: '數位發展部',
+    inviterTitle: '副組長',
+    vistorEmail: 'lin@company.com',
+    vistorName: '林小雅',
+    vistorDept: 'MNO 軟體公司',
+    vistorPhone: '0967890123',
+    meetingTime: '2025-01-17 09:00',
+    meetingName: '系統開發討論',
+    meetingRoom: '會議室 F',
+  },
+  {
+    checkinTimestamp: '2025-01-17T10:00:00Z',
+    checkoutTimestamp: null,
+    inviterEmail: 'g@moda.gov.tw',
+    inviterName: '周九',
+    inviterDept: '數位發展部',
+    inviterTitle: '資深專員',
+    vistorEmail: 'huang@company.com',
+    vistorName: '黃志強',
+    vistorDept: 'PQR 資訊科技',
+    vistorPhone: '0978901234',
+    meetingTime: '2025-01-17 10:30',
+    meetingName: '資安評估',
+    meetingRoom: '會議室 G',
+  },
+  {
+    checkinTimestamp: '2025-01-17T13:00:00Z',
+    checkoutTimestamp: '2025-01-17T16:45:00Z',
+    inviterEmail: 'h@moda.gov.tw',
+    inviterName: '吳十',
+    inviterDept: '數位發展部',
+    inviterTitle: '經理',
+    vistorEmail: 'chang@company.com',
+    vistorName: '張文華',
+    vistorDept: 'STU 數位行銷',
+    vistorPhone: '0989012345',
+    meetingTime: '2025-01-17 14:00',
+    meetingName: '行銷策略會議',
+    meetingRoom: '會議室 H',
+  },
+  {
+    checkinTimestamp: '2025-01-18T09:15:00Z',
+    checkoutTimestamp: '2025-01-18T11:30:00Z',
+    inviterEmail: 'i@moda.gov.tw',
+    inviterName: '鄭十一',
+    inviterDept: '數位發展部',
+    inviterTitle: '專案經理',
+    vistorEmail: 'tsai@company.com',
+    vistorName: '蔡明哲',
+    vistorDept: 'VWX 顧問公司',
+    vistorPhone: '0990123456',
+    meetingTime: '2025-01-18 10:00',
+    meetingName: '專案進度檢討',
+    meetingRoom: '會議室 I',
+  },
+  {
+    checkinTimestamp: '2025-01-18T14:00:00Z',
+    checkoutTimestamp: '2025-01-18T18:00:00Z',
+    inviterEmail: 'j@moda.gov.tw',
+    inviterName: '陳十二',
+    inviterDept: '數位發展部',
+    inviterTitle: '技術長',
+    vistorEmail: 'hsu@company.com',
+    vistorName: '許建國',
+    vistorDept: 'YZA 系統整合',
+    vistorPhone: '0901234567',
+    meetingTime: '2025-01-18 15:00',
+    meetingName: '技術架構規劃',
+    meetingRoom: '會議室 J',
+  },
+  {
+    checkinTimestamp: '2025-01-19T08:00:00Z',
+    checkoutTimestamp: '2025-01-19T10:30:00Z',
+    inviterEmail: 'k@moda.gov.tw',
+    inviterName: '林十三',
+    inviterDept: '數位發展部',
+    inviterTitle: '主任專員',
+    vistorEmail: 'cheng@company.com',
+    vistorName: '程美玲',
+    vistorDept: 'BCD 雲端服務',
+    vistorPhone: '0912345678',
+    meetingTime: '2025-01-19 09:00',
+    meetingName: '雲端服務導入',
+    meetingRoom: '會議室 K',
+  },
+  {
+    checkinTimestamp: '2025-01-19T11:00:00Z',
+    checkoutTimestamp: null,
+    inviterEmail: 'l@moda.gov.tw',
+    inviterName: '黃十四',
+    inviterDept: '數位發展部',
+    inviterTitle: '資深工程師',
+    vistorEmail: 'lee@company.com',
+    vistorName: '李佳蓉',
+    vistorDept: 'EFG 大數據分析',
+    vistorPhone: '0923456789',
+    meetingTime: '2025-01-19 11:30',
+    meetingName: '數據分析平台',
+    meetingRoom: '會議室 L',
+  },
+]
+
+// GET /dashboard/vistorlogs - 取得歷史簽到記錄
+export async function getVisitorLogs(): Promise<VisitorLog[]> {
+  await delay(500)
+  return [...mockVisitorLogs].sort((a, b) => 
+    new Date(b.checkinTimestamp).getTime() - new Date(a.checkinTimestamp).getTime()
+  )
+}
+

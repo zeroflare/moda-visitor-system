@@ -1,11 +1,11 @@
 // 假資料模擬 API
-const API_BASE_URL = '/api/dashboard/users'
+// const API_BASE_URL = '/api/dashboard/users' // 未來使用真實 API 時啟用
 
 // 模擬延遲
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
 // 假資料儲存
-let mockUsers: User[] = [
+const mockUsers: User[] = [
   {
     username: 'visitor-admin',
     email: 'admin@example.com',
@@ -19,6 +19,31 @@ let mockUsers: User[] = [
   {
     username: 'visitor-user2',
     email: 'user2@example.com',
+    role: 'user',
+  },
+  {
+    username: 'visitor-user3',
+    email: 'user3@example.com',
+    role: 'user',
+  },
+  {
+    username: 'visitor-user4',
+    email: 'user4@example.com',
+    role: 'user',
+  },
+  {
+    username: 'visitor-admin2',
+    email: 'admin2@example.com',
+    role: 'admin',
+  },
+  {
+    username: 'visitor-user5',
+    email: 'user5@example.com',
+    role: 'user',
+  },
+  {
+    username: 'visitor-user6',
+    email: 'user6@example.com',
     role: 'user',
   },
 ]
