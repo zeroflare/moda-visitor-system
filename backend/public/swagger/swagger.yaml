@@ -14,6 +14,47 @@ tags:
     description: 後台登入 API
 
 paths:
+  /checkin/info:
+    get:
+      tags:
+        - checkin
+      summary: 取得櫃檯資訊
+      description: 依櫃檯代號取得櫃檯的名稱與說明。
+      parameters:
+        - name: counter
+          in: query
+          required: true
+          schema:
+            type: string
+          description: 櫃檯編號或名稱
+          example: "Counter-A"
+      responses:
+        "200":
+          description: 成功取得櫃檯資訊
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    description: 櫃檯名稱
+                    example: "延平一樓櫃檯"
+                  description:
+                    type: string
+                    description: 櫃檯說明
+                    example: "提供訪客簽到與證件查驗服務"
+        "404":
+          description: 找不到櫃檯
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Counter not found"
+ 
   /checkin/qrcode:
     get:
       tags:
@@ -28,6 +69,13 @@ paths:
             type: string
           description: 本次登入流程的 Transaction ID
           example: "f66ea4a9-aaaa-4e9a-a3bc-0a82ca1ea276"
+        - name: counter
+          in: query
+          required: true
+          schema:
+            type: string
+          description: 櫃檯編號或名稱
+          example: "Counter-A"
       responses:
         "200":
           description: 成功取得 QRCode
@@ -58,6 +106,13 @@ paths:
             type: string
           description: 本次登入流程的 Transaction ID
           example: "f66ea4a9-aaaa-4e9a-a3bc-0a82ca1ea276"
+        - name: counter
+          in: query
+          required: true
+          schema:
+            type: string
+          description: 櫃檯編號或名稱
+          example: "Counter-A"
       responses:
         "200":
           description: 完成登入
@@ -245,93 +300,83 @@ paths:
                   message:
                     type: string
                     example: "Waiting for registration"
-  /dashboard/login/qrcode:
-    get:
+
+  /dashboard/login/otp:
+    post:
       tags:
         - dashboard
-      summary: 取得訪問者簽到 QRCode
-      description: 取得用於皮夾登入的 QRCode 及連結。
-      parameters:
-        - name: transactionId
-          in: query
-          required: true
-          schema:
-            type: string
-          description: 本次登入流程的 Transaction ID
-          example: "f66ea4a9-aaaa-4e9a-a3bc-0a82ca1ea276"
+      summary: 發送 Dashboard 登入 OTP
+      description: 透過 Email 發送一次性驗證碼供後台登入使用。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: 使用者 Email
+                  example: "admin@example.com"
+              required:
+                - email
       responses:
         "200":
-          description: 成功取得 QRCode
+          description: OTP 發送成功
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  qrcodeImage:
+                  message:
                     type: string
-                    description: 皮夾登入Qrcode
-                    example: "data:image/png;base64, xxxxx"
-                  authUri:
-                    type: string
-                    description: 皮夾登入網址
-                    example: "modadigitalwallet://authorize"
+                    example: "OTP sent"
+
   /dashboard/login/result:
-    get:
+    post:
       tags:
         - dashboard
-      summary: 檢查簽到狀態
-      description: 檢查訪客是否已完成簽到。
-      parameters:
-        - name: transactionId
-          in: query
-          required: true
-          schema:
-            type: string
-          description: 本次登入流程的 Transaction ID
-          example: "f66ea4a9-aaaa-4e9a-a3bc-0a82ca1ea276"
+      summary: 驗證 Dashboard 登入 OTP
+      description: 驗證使用者輸入的 OTP 並完成登入。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: 使用者 Email
+                  example: "admin@example.com"
+                otp:
+                  type: string
+                  description: 一次性驗證碼
+                  example: "123456"
+              required:
+                - email
+                - otp
       responses:
         "200":
-          description: 完成登入
+          description: 登入成功 (Session 已透過 Set-Cookie 設定)
+          headers:
+            Set-Cookie:
+              description: Session cookie 用於後續請求驗證
+              schema:
+                type: string
+                example: "session=abc123; HttpOnly; Secure; SameSite=Lax"
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  inviterEmail:
+                  message:
                     type: string
-                    example: "a@moda.gov.tw"
-                  inviterName:
-                    type: string
-                    example: "邀請者姓名"
-                  inviterDept:
-                    type: string
-                    example: "邀請者單位"
-                  inviterTitle:
-                    type: string
-                    example: "邀請者職稱"
-                  vistorEmail:
-                    type: string
-                    example: "hchou@company.com"
-                  vistorName:
-                    type: string
-                    example: "訪問者姓名"
-                  vistorDept:
-                    type: string
-                    example: "訪問者公司"
-                  vistorPhone:
-                    type: string
-                    example: "訪問者電話"
-                  meetingTime:
-                    type: string
-                    example: "會議時間"
-                  meetingName:
-                    type: string
-                    example: "會議名稱"
-                  meetingRoom:
-                    type: string
-                    example: "會議室"
+                    example: "Login successful"
         "400":
-          description: 等待登入
+          description: OTP 驗證失敗或過期
           content:
             application/json:
               schema:
@@ -339,17 +384,7 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "Waiting for login"
-        "401":
-          description: 今日沒有會議
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Waiting for login"
+                    example: "Invalid or expired OTP"
 
   /dashboard/checklogs:
     get:
@@ -363,54 +398,51 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  logs:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        timestamp:
-                          type: string
-                          format: date-time
-                          description: 時間
-                          example: "2025-11-27T10:00:00Z"
-                        type:
-                          type: string
-                          example: "簽到/簽退"
-                        inviterEmail:
-                          type: string
-                          example: "a@moda.gov.tw"
-                        inviterName:
-                          type: string
-                          example: "邀請者姓名"
-                        inviterDept:
-                          type: string
-                          example: "邀請者單位"
-                        inviterTitle:
-                          type: string
-                          example: "邀請者職稱"
-                        vistorEmail:
-                          type: string
-                          example: "hchou@company.com"
-                        vistorName:
-                          type: string
-                          example: "訪問者姓名"
-                        vistorDept:
-                          type: string
-                          example: "訪問者公司"
-                        vistorPhone:
-                          type: string
-                          example: "訪問者電話"
-                        meetingTime:
-                          type: string
-                          example: "會議時間"
-                        meetingName:
-                          type: string
-                          example: "會議名稱"
-                        meetingRoom:
-                          type: string
-                          example: "會議室"
+                type: array
+                items:
+                  type: object
+                  properties:
+                    timestamp:
+                      type: string
+                      format: date-time
+                      description: 時間
+                      example: "2025-11-27T10:00:00Z"
+                    type:
+                      type: string
+                      example: "簽到/簽退"
+                    inviterEmail:
+                      type: string
+                      example: "a@moda.gov.tw"
+                    inviterName:
+                      type: string
+                      example: "邀請者姓名"
+                    inviterDept:
+                      type: string
+                      example: "邀請者單位"
+                    inviterTitle:
+                      type: string
+                      example: "邀請者職稱"
+                    vistorEmail:
+                      type: string
+                      example: "hchou@company.com"
+                    vistorName:
+                      type: string
+                      example: "訪問者姓名"
+                    vistorDept:
+                      type: string
+                      example: "訪問者公司"
+                    vistorPhone:
+                      type: string
+                      example: "訪問者電話"
+                    meetingTime:
+                      type: string
+                      example: "會議時間"
+                    meetingName:
+                      type: string
+                      example: "會議名稱"
+                    meetingRoom:
+                      type: string
+                      example: "會議室"
 
   /dashboard/vistorlogs:
     get:
@@ -424,56 +456,53 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  logs:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        checkinTimestamp:
-                          type: string
-                          format: date-time
-                          description: 簽到時間
-                          example: "2025-11-27T10:00:00Z"
-                        checkoutTimestamp:
-                          type: string
-                          format: date-time
-                          description: 簽退時間
-                          example: "2025-11-27T10:00:00Z"
-                        inviterEmail:
-                          type: string
-                          example: "a@moda.gov.tw"
-                        inviterName:
-                          type: string
-                          example: "邀請者姓名"
-                        inviterDept:
-                          type: string
-                          example: "邀請者單位"
-                        inviterTitle:
-                          type: string
-                          example: "邀請者職稱"
-                        vistorEmail:
-                          type: string
-                          example: "hchou@company.com"
-                        vistorName:
-                          type: string
-                          example: "訪問者姓名"
-                        vistorDept:
-                          type: string
-                          example: "訪問者公司"
-                        vistorPhone:
-                          type: string
-                          example: "訪問者電話"
-                        meetingTime:
-                          type: string
-                          example: "會議時間"
-                        meetingName:
-                          type: string
-                          example: "會議名稱"
-                        meetingRoom:
-                          type: string
-                          example: "會議室"
+                type: array
+                items:
+                  type: object
+                  properties:
+                    checkinTimestamp:
+                      type: string
+                      format: date-time
+                      description: 簽到時間
+                      example: "2025-11-27T10:00:00Z"
+                    checkoutTimestamp:
+                      type: string
+                      format: date-time
+                      description: 簽退時間
+                      example: "2025-11-27T10:00:00Z"
+                    inviterEmail:
+                      type: string
+                      example: "a@moda.gov.tw"
+                    inviterName:
+                      type: string
+                      example: "邀請者姓名"
+                    inviterDept:
+                      type: string
+                      example: "邀請者單位"
+                    inviterTitle:
+                      type: string
+                      example: "邀請者職稱"
+                    vistorEmail:
+                      type: string
+                      example: "hchou@company.com"
+                    vistorName:
+                      type: string
+                      example: "訪問者姓名"
+                    vistorDept:
+                      type: string
+                      example: "訪問者公司"
+                    vistorPhone:
+                      type: string
+                      example: "訪問者電話"
+                    meetingTime:
+                      type: string
+                      example: "會議時間"
+                    meetingName:
+                      type: string
+                      example: "會議名稱"
+                    meetingRoom:
+                      type: string
+                      example: "會議室"
 
   /dashboard/users:
     get:
@@ -487,12 +516,9 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  users:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/User"
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
     post:
       tags:
         - dashboard
@@ -512,15 +538,15 @@ paths:
               schema:
                 $ref: "#/components/schemas/User"
 
-  /dashboard/users/{id}:
+  /dashboard/users/{email}:
     parameters:
-      - name: id
+      - name: email
         in: path
         required: true
         schema:
           type: string
-        description: 使用者 ID
-        example: "user_123"
+        description: 使用者 Email
+        example: "user@example.com"
     get:
       tags:
         - dashboard
@@ -566,14 +592,25 @@ paths:
         "404":
           description: 找不到使用者
 
+  /dashboard/me:
+    get:
+      tags:
+        - dashboard
+      summary: 取得目前登入使用者資料
+      description: 回傳目前登入中使用者的資訊。
+      responses:
+        "200":
+          description: 成功取得使用者資料
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
 components:
   schemas:
     User:
       type: object
       properties:
-        id:
-          type: string
-          example: "user_123"
         username:
           type: string
           example: "visitor-admin"
