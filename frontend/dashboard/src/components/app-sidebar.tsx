@@ -1,5 +1,4 @@
 import * as React from "react"
-import { GalleryVerticalEnd } from "lucide-react"
 
 import {
   Sidebar,
@@ -15,148 +14,71 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 
-// This is sample data.
+type Page = 'raw-data' | 'processed-data' | 'user-management' | null
+
+interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
+  onNavigate?: (page: Page) => void
+}
+
 const data = {
   navMain: [
     {
-      title: "Getting Started",
+      title: "數據列表",
       url: "#",
       items: [
         {
-          title: "Installation",
+          title: "原始資料表",
           url: "#",
+          page: 'raw-data' as Page,
         },
         {
-          title: "Project Structure",
+          title: "整理後資料表",
           url: "#",
+          page: 'processed-data' as Page,
+        },
+        {
+          title: "憑證列表",
+          url: "#",
+          page: null,
         },
       ],
     },
     {
-      title: "Building Your Application",
+      title: "帳號與安全",
       url: "#",
       items: [
         {
-          title: "Routing",
+          title: "人員管理",
           url: "#",
+          page: 'user-management' as Page,
         },
         {
-          title: "Data Fetching",
+          title: "操作紀錄",
           url: "#",
-          isActive: true,
-        },
-        {
-          title: "Rendering",
-          url: "#",
-        },
-        {
-          title: "Caching",
-          url: "#",
-        },
-        {
-          title: "Styling",
-          url: "#",
-        },
-        {
-          title: "Optimizing",
-          url: "#",
-        },
-        {
-          title: "Configuring",
-          url: "#",
-        },
-        {
-          title: "Testing",
-          url: "#",
-        },
-        {
-          title: "Authentication",
-          url: "#",
-        },
-        {
-          title: "Deploying",
-          url: "#",
-        },
-        {
-          title: "Upgrading",
-          url: "#",
-        },
-        {
-          title: "Examples",
-          url: "#",
+          page: null,
         },
       ],
     },
     {
-      title: "API Reference",
+      title: "系統配置",
       url: "#",
       items: [
         {
-          title: "Components",
+          title: "參數設定",
           url: "#",
+          page: null,
         },
         {
-          title: "File Conventions",
+          title: "郵件模板",
           url: "#",
-        },
-        {
-          title: "Functions",
-          url: "#",
-        },
-        {
-          title: "next.config.js Options",
-          url: "#",
-        },
-        {
-          title: "CLI",
-          url: "#",
-        },
-        {
-          title: "Edge Runtime",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Architecture",
-      url: "#",
-      items: [
-        {
-          title: "Accessibility",
-          url: "#",
-        },
-        {
-          title: "Fast Refresh",
-          url: "#",
-        },
-        {
-          title: "Next.js Compiler",
-          url: "#",
-        },
-        {
-          title: "Supported Browsers",
-          url: "#",
-        },
-        {
-          title: "Turbopack",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Community",
-      url: "#",
-      items: [
-        {
-          title: "Contribution Guide",
-          url: "#",
+          page: null,
         },
       ],
     },
   ],
 }
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({ onNavigate, ...props }: AppSidebarProps) {
   return (
     <Sidebar {...props}>
       <SidebarHeader>
@@ -164,12 +86,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <a href="#">
-                <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <GalleryVerticalEnd className="size-4" />
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg">
+                  <img src="/moda_logo.png" alt="moda" className="h-full w-full object-contain" />
                 </div>
                 <div className="flex flex-col gap-0.5 leading-none">
-                  <span className="font-medium">Documentation</span>
-                  <span className="">v1.0.0</span>
+                  <span className="font-medium">數位發展部</span>
+                  <span className="">訪客系統</span>
                 </div>
               </a>
             </SidebarMenuButton>
@@ -188,10 +110,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 </SidebarMenuButton>
                 {item.items?.length ? (
                   <SidebarMenuSub>
-                    {item.items.map((item) => (
-                      <SidebarMenuSubItem key={item.title}>
-                        <SidebarMenuSubButton asChild isActive={item.isActive}>
-                          <a href={item.url}>{item.title}</a>
+                    {item.items.map((subItem) => (
+                      <SidebarMenuSubItem key={subItem.title}>
+                        <SidebarMenuSubButton asChild>
+                          <a
+                            href={subItem.url}
+                            onClick={(e) => {
+                              e.preventDefault()
+                              if (onNavigate && subItem.page !== undefined) {
+                                onNavigate(subItem.page)
+                              }
+                            }}
+                          >
+                            {subItem.title}
+                          </a>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
                     ))}
