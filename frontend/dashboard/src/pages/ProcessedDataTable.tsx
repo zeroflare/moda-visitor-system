@@ -1,12 +1,16 @@
 import { useState, useEffect, useMemo } from 'react'
+import { type DateRange } from 'react-day-picker'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Pagination } from '@/components/ui/pagination'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
-import { Loader2, AlertTriangle, X, Filter } from 'lucide-react'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar } from '@/components/ui/calendar'
+import { Loader2, AlertTriangle, X, Filter, CalendarIcon } from 'lucide-react'
 import { getVisitorLogs, type VisitorLog } from '@/services/visitorLogApi'
+import { format } from 'date-fns'
 
 const ITEMS_PER_PAGE = 10
 
@@ -21,6 +25,7 @@ export function ProcessedDataTable() {
   const [filterMeetingName, setFilterMeetingName] = useState<string>('')
   const [filterInviter, setFilterInviter] = useState<string>('')
   const [filterMeetingRoom, setFilterMeetingRoom] = useState<string>('')
+  const [dateRange, setDateRange] = useState<DateRange | undefined>()
 
   // 載入資料
   const loadData = async () => {
@@ -71,9 +76,32 @@ export function ProcessedDataTable() {
       const meetingRoomMatch = !filterMeetingRoom ||
         log.meetingRoom === filterMeetingRoom
 
-      return visitorMatch && meetingNameMatch && inviterMatch && meetingRoomMatch
+      // 日期範圍篩選（根據簽到時間）
+      let dateMatch = true
+      if (dateRange?.from || dateRange?.to) {
+        const checkinDate = new Date(log.checkinTimestamp)
+        checkinDate.setHours(0, 0, 0, 0)
+        
+        if (dateRange.from) {
+          const startDate = new Date(dateRange.from)
+          startDate.setHours(0, 0, 0, 0)
+          if (checkinDate < startDate) {
+            dateMatch = false
+          }
+        }
+        
+        if (dateRange.to && dateMatch) {
+          const endDate = new Date(dateRange.to)
+          endDate.setHours(23, 59, 59, 999)
+          if (checkinDate > endDate) {
+            dateMatch = false
+          }
+        }
+      }
+
+      return visitorMatch && meetingNameMatch && inviterMatch && meetingRoomMatch && dateMatch
     })
-  }, [visitorLogs, filterVisitor, filterMeetingName, filterInviter, filterMeetingRoom])
+  }, [visitorLogs, filterVisitor, filterMeetingName, filterInviter, filterMeetingRoom, dateRange])
 
   // 分頁計算（基於篩選後的資料）
   const paginatedLogs = useMemo(() => {
@@ -87,7 +115,7 @@ export function ProcessedDataTable() {
   // 當篩選條件改變時，重置到第一頁
   useEffect(() => {
     setCurrentPage(1)
-  }, [filterVisitor, filterMeetingName, filterInviter, filterMeetingRoom])
+  }, [filterVisitor, filterMeetingName, filterInviter, filterMeetingRoom, dateRange])
 
   // 當資料載入完成時，重置到第一頁
   useEffect(() => {
@@ -127,7 +155,7 @@ export function ProcessedDataTable() {
   }
 
   // 檢查是否有篩選條件
-  const hasActiveFilters = filterVisitor || filterMeetingName || filterInviter || filterMeetingRoom
+  const hasActiveFilters = filterVisitor || filterMeetingName || filterInviter || filterMeetingRoom || dateRange?.from || dateRange?.to
 
   // 清除所有篩選
   const clearAllFilters = () => {
@@ -135,6 +163,24 @@ export function ProcessedDataTable() {
     setFilterMeetingName('')
     setFilterInviter('')
     setFilterMeetingRoom('')
+    setDateRange(undefined)
+  }
+
+  // 格式化日期範圍顯示
+  const formatDateRange = () => {
+    if (!dateRange?.from && !dateRange?.to) {
+      return '選擇日期範圍'
+    }
+    if (dateRange.from && dateRange.to) {
+      return `${format(dateRange.from, 'yyyy/MM/dd')} - ${format(dateRange.to, 'yyyy/MM/dd')}`
+    }
+    if (dateRange.from) {
+      return `從 ${format(dateRange.from, 'yyyy/MM/dd')}`
+    }
+    if (dateRange.to) {
+      return `至 ${format(dateRange.to, 'yyyy/MM/dd')}`
+    }
+    return '選擇日期範圍'
   }
 
   return (
@@ -155,81 +201,108 @@ export function ProcessedDataTable() {
           {/* 篩選區域 */}
           {!loading && (
             <div className="mb-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4 text-muted-foreground" />
-                  <h3 className="text-sm font-medium">篩選條件</h3>
-                  {hasActiveFilters && (
-                    <span className="text-xs text-muted-foreground">
-                      （已篩選出 {filteredLogs.length} 筆資料）
-                    </span>
-                  )}
-                </div>
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-muted-foreground" />
+                <h3 className="text-sm font-medium">篩選條件</h3>
                 {hasActiveFilters && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={clearAllFilters}
-                    className="h-8"
-                  >
-                    <X className="h-3 w-3 mr-1" />
-                    清除篩選
-                  </Button>
+                  <span className="text-xs text-muted-foreground">
+                    （已篩選出 {filteredLogs.length} 筆資料）
+                  </span>
                 )}
               </div>
               <div className="rounded-lg border bg-muted/30 p-4">
-                <div className="flex flex-wrap gap-4">
-                  <div className="space-y-2 min-w-[200px] max-w-[220px] flex-1">
-                    <Label htmlFor="filter-visitor" className="text-xs font-medium">
-                      訪客資訊
-                    </Label>
-                    <Input
-                      id="filter-visitor"
-                      placeholder="搜尋訪客姓名、公司、Email..."
-                      value={filterVisitor}
-                      onChange={(e) => setFilterVisitor(e.target.value)}
-                      className="h-9"
-                    />
-                  </div>
-                  <div className="space-y-2 min-w-[200px] max-w-[220px] flex-1">
-                    <Label htmlFor="filter-meeting-name" className="text-xs font-medium">
-                      會議名稱
-                    </Label>
-                    <Input
-                      id="filter-meeting-name"
-                      placeholder="搜尋會議名稱..."
-                      value={filterMeetingName}
-                      onChange={(e) => setFilterMeetingName(e.target.value)}
-                      className="h-9"
-                    />
-                  </div>
-                  <div className="space-y-2 min-w-[200px] max-w-[220px] flex-1">
-                    <Label htmlFor="filter-inviter" className="text-xs font-medium">
-                      邀請者資訊
-                    </Label>
-                    <Input
-                      id="filter-inviter"
-                      placeholder="搜尋邀請者姓名、單位..."
-                      value={filterInviter}
-                      onChange={(e) => setFilterInviter(e.target.value)}
-                      className="h-9"
-                    />
-                  </div>
-                  <div className="space-y-2 min-w-[200px] max-w-[220px] flex-1">
-                    <Label htmlFor="filter-meeting-room" className="text-xs font-medium">
-                      會議室
-                    </Label>
-                    <select
-                      id="filter-meeting-room"
-                      value={filterMeetingRoom}
-                      onChange={(e) => setFilterMeetingRoom(e.target.value)}
-                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <option value="">全部</option>
-                      {meetingRooms.map(room => (
-                        <option key={room} value={room}>{room}</option>
-                      ))}
-                    </select>
+                <div className="space-y-4">
+                  <div className="flex flex-wrap gap-4">
+                    <div className="space-y-2 min-w-[200px] max-w-[220px] flex-1">
+                      <Label htmlFor="filter-visitor" className="text-xs font-medium">
+                        訪客資訊
+                      </Label>
+                      <Input
+                        id="filter-visitor"
+                        placeholder="搜尋訪客姓名、公司、Email..."
+                        value={filterVisitor}
+                        onChange={(e) => setFilterVisitor(e.target.value)}
+                        className="h-9"
+                      />
+                    </div>
+                    <div className="space-y-2 min-w-[200px] max-w-[220px] flex-1">
+                      <Label htmlFor="filter-meeting-name" className="text-xs font-medium">
+                        會議名稱
+                      </Label>
+                      <Input
+                        id="filter-meeting-name"
+                        placeholder="搜尋會議名稱..."
+                        value={filterMeetingName}
+                        onChange={(e) => setFilterMeetingName(e.target.value)}
+                        className="h-9"
+                      />
+                    </div>
+                    <div className="space-y-2 min-w-[200px] max-w-[220px] flex-1">
+                      <Label htmlFor="filter-inviter" className="text-xs font-medium">
+                        邀請者資訊
+                      </Label>
+                      <Input
+                        id="filter-inviter"
+                        placeholder="搜尋邀請者姓名、單位..."
+                        value={filterInviter}
+                        onChange={(e) => setFilterInviter(e.target.value)}
+                        className="h-9"
+                      />
+                    </div>
+                    <div className="space-y-2 min-w-[200px] max-w-[220px] flex-1">
+                      <Label htmlFor="filter-meeting-room" className="text-xs font-medium">
+                        會議室
+                      </Label>
+                      <select
+                        id="filter-meeting-room"
+                        value={filterMeetingRoom}
+                        onChange={(e) => setFilterMeetingRoom(e.target.value)}
+                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <option value="">全部</option>
+                        {meetingRooms.map(room => (
+                          <option key={room} value={room}>{room}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-2 min-w-[200px] max-w-[280px] flex-1">
+                      <Label className="text-xs font-medium">
+                        日期範圍
+                      </Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="h-9 w-full justify-start text-left font-normal"
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {formatDateRange()}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="range"
+                            defaultMonth={dateRange?.from}
+                            selected={dateRange}
+                            onSelect={setDateRange}
+                            numberOfMonths={2}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    {hasActiveFilters && (
+                      <div className="space-y-2 flex items-end ml-auto">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={clearAllFilters}
+                          className="h-9"
+                        >
+                          <X className="h-3 w-3 mr-1" />
+                          清除篩選
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -306,7 +379,7 @@ export function ProcessedDataTable() {
                   itemsPerPage={ITEMS_PER_PAGE}
                 />
               )}
-            </div>
+          </div>
           )}
         </CardContent>
       </Card>
