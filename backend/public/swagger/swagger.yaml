@@ -249,8 +249,16 @@ paths:
     get:
       tags:
         - dashboard
-      summary: 取得登入 QRCode
+      summary: 取得訪問者簽到 QRCode
       description: 取得用於皮夾登入的 QRCode 及連結。
+      parameters:
+        - name: transactionId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: 本次登入流程的 Transaction ID
+          example: "f66ea4a9-aaaa-4e9a-a3bc-0a82ca1ea276"
       responses:
         "200":
           description: 成功取得 QRCode
@@ -271,8 +279,16 @@ paths:
     get:
       tags:
         - dashboard
-      summary: 檢查皮夾登入狀態
-      description: 檢查訪客是否已完成皮夾登入。
+      summary: 檢查簽到狀態
+      description: 檢查訪客是否已完成簽到。
+      parameters:
+        - name: transactionId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: 本次登入流程的 Transaction ID
+          example: "f66ea4a9-aaaa-4e9a-a3bc-0a82ca1ea276"
       responses:
         "200":
           description: 完成登入
@@ -281,9 +297,39 @@ paths:
               schema:
                 type: object
                 properties:
-                  message:
+                  inviterEmail:
                     type: string
-                    example: "Login completed"
+                    example: "a@moda.gov.tw"
+                  inviterName:
+                    type: string
+                    example: "邀請者姓名"
+                  inviterDept:
+                    type: string
+                    example: "邀請者單位"
+                  inviterTitle:
+                    type: string
+                    example: "邀請者職稱"
+                  vistorEmail:
+                    type: string
+                    example: "hchou@company.com"
+                  vistorName:
+                    type: string
+                    example: "訪問者姓名"
+                  vistorDept:
+                    type: string
+                    example: "訪問者公司"
+                  vistorPhone:
+                    type: string
+                    example: "訪問者電話"
+                  meetingTime:
+                    type: string
+                    example: "會議時間"
+                  meetingName:
+                    type: string
+                    example: "會議名稱"
+                  meetingRoom:
+                    type: string
+                    example: "會議室"
         "400":
           description: 等待登入
           content:
@@ -294,3 +340,266 @@ paths:
                   message:
                     type: string
                     example: "Waiting for login"
+        "401":
+          description: 今日沒有會議
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Waiting for login"
+
+  /dashboard/checklogs:
+    get:
+      tags:
+        - dashboard
+      summary: 查詢簽到簽到簽退原始資料
+      description: 取得歷史簽到記錄，包含產生時間與簽到結果資訊。
+      responses:
+        "200":
+          description: 成功取得簽到紀錄
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logs:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        timestamp:
+                          type: string
+                          format: date-time
+                          description: 時間
+                          example: "2025-11-27T10:00:00Z"
+                        type:
+                          type: string
+                          example: "簽到/簽退"
+                        inviterEmail:
+                          type: string
+                          example: "a@moda.gov.tw"
+                        inviterName:
+                          type: string
+                          example: "邀請者姓名"
+                        inviterDept:
+                          type: string
+                          example: "邀請者單位"
+                        inviterTitle:
+                          type: string
+                          example: "邀請者職稱"
+                        vistorEmail:
+                          type: string
+                          example: "hchou@company.com"
+                        vistorName:
+                          type: string
+                          example: "訪問者姓名"
+                        vistorDept:
+                          type: string
+                          example: "訪問者公司"
+                        vistorPhone:
+                          type: string
+                          example: "訪問者電話"
+                        meetingTime:
+                          type: string
+                          example: "會議時間"
+                        meetingName:
+                          type: string
+                          example: "會議名稱"
+                        meetingRoom:
+                          type: string
+                          example: "會議室"
+
+  /dashboard/vistorlogs:
+    get:
+      tags:
+        - dashboard
+      summary: 依據google日曆的簽到簽退紀錄
+      description: 取得歷史簽到記錄，包含產生時間與簽到結果資訊。
+      responses:
+        "200":
+          description: 成功取得簽到紀錄
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logs:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        checkinTimestamp:
+                          type: string
+                          format: date-time
+                          description: 簽到時間
+                          example: "2025-11-27T10:00:00Z"
+                        checkoutTimestamp:
+                          type: string
+                          format: date-time
+                          description: 簽退時間
+                          example: "2025-11-27T10:00:00Z"
+                        inviterEmail:
+                          type: string
+                          example: "a@moda.gov.tw"
+                        inviterName:
+                          type: string
+                          example: "邀請者姓名"
+                        inviterDept:
+                          type: string
+                          example: "邀請者單位"
+                        inviterTitle:
+                          type: string
+                          example: "邀請者職稱"
+                        vistorEmail:
+                          type: string
+                          example: "hchou@company.com"
+                        vistorName:
+                          type: string
+                          example: "訪問者姓名"
+                        vistorDept:
+                          type: string
+                          example: "訪問者公司"
+                        vistorPhone:
+                          type: string
+                          example: "訪問者電話"
+                        meetingTime:
+                          type: string
+                          example: "會議時間"
+                        meetingName:
+                          type: string
+                          example: "會議名稱"
+                        meetingRoom:
+                          type: string
+                          example: "會議室"
+
+  /dashboard/users:
+    get:
+      tags:
+        - dashboard
+      summary: 取得使用者列表
+      description: 取得所有後台使用者。
+      responses:
+        "200":
+          description: 成功取得使用者列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/User"
+    post:
+      tags:
+        - dashboard
+      summary: 新增使用者
+      description: 建立一位新的後台使用者。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserInput"
+      responses:
+        "201":
+          description: 建立成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /dashboard/users/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: 使用者 ID
+        example: "user_123"
+    get:
+      tags:
+        - dashboard
+      summary: 取得單一使用者
+      description: 取得特定使用者的詳細資訊。
+      responses:
+        "200":
+          description: 成功取得使用者
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: 找不到使用者
+    put:
+      tags:
+        - dashboard
+      summary: 更新使用者
+      description: 更新特定使用者的資訊。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserInput"
+      responses:
+        "200":
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: 找不到使用者
+    delete:
+      tags:
+        - dashboard
+      summary: 刪除使用者
+      description: 刪除特定使用者。
+      responses:
+        "204":
+          description: 刪除成功 (無內容)
+        "404":
+          description: 找不到使用者
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "user_123"
+        username:
+          type: string
+          example: "visitor-admin"
+        email:
+          type: string
+          format: email
+          example: "admin@example.com"
+        role:
+          type: string
+          enum: ["admin", "staff", "viewer"]
+          example: "admin"
+    UserInput:
+      type: object
+      required:
+        - username
+        - email
+        - role
+      properties:
+        username:
+          type: string
+          example: "visitor-admin"
+        email:
+          type: string
+          format: email
+          example: "admin@example.com"
+        role:
+          type: string
+          enum: ["admin", "staff", "viewer"]
+          example: "staff"
