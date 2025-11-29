@@ -74,7 +74,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
             <SidebarMenuButton size="lg" asChild>
               <Link to="/raw-data">
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <img src="/moda_logo.png" alt="moda" className="h-full w-full object-contain" />
+                  <img src={`${import.meta.env.BASE_URL}moda_logo.png`} alt="moda" className="h-full w-full object-contain" />
                 </div>
                 <div className="flex flex-col gap-0.5 leading-none">
                   <span className="font-medium">數位發展部</span>

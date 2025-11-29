@@ -8,9 +8,16 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Calendar } from '@/components/ui/calendar'
-import { Loader2, AlertTriangle, X, Filter, CalendarIcon } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Loader2, AlertTriangle, X, Filter, CalendarIcon, Download, FileSpreadsheet, FileText } from 'lucide-react'
 import { getVisitorLogs, type VisitorLog } from '@/services/visitorLogApi'
 import { format } from 'date-fns'
+import * as XLSX from 'xlsx'
 
 const ITEMS_PER_PAGE = 10
 
@@ -183,12 +190,133 @@ export function ProcessedDataTable() {
     return '選擇日期範圍'
   }
 
+  // 準備匯出資料
+  const prepareExportData = () => {
+    return filteredLogs.map(log => ({
+      '訪客姓名': log.vistorName,
+      '訪客公司': log.vistorDept,
+      '訪客Email': log.vistorEmail,
+      '訪客電話': log.vistorPhone,
+      '會議名稱': log.meetingName,
+      '會議室': log.meetingRoom,
+      '會議時間': log.meetingTime,
+      '邀請者姓名': log.inviterName,
+      '邀請者單位': log.inviterDept,
+      '邀請者職稱': log.inviterTitle,
+      '邀請者Email': log.inviterEmail,
+      '簽到時間': formatDateTime(log.checkinTimestamp),
+      '簽退時間': formatDateTime(log.checkoutTimestamp),
+      '停留時間': log.checkoutTimestamp 
+        ? calculateDuration(log.checkinTimestamp, log.checkoutTimestamp)
+        : '-'
+    }))
+  }
+
+  // 匯出 CSV
+  const exportToCSV = () => {
+    const data = prepareExportData()
+    if (data.length === 0) {
+      return
+    }
+
+    // 取得欄位名稱
+    const headers = Object.keys(data[0])
+    
+    // 建立 CSV 內容
+    const csvContent = [
+      headers.join(','),
+      ...data.map(row => 
+        headers.map(header => {
+          const value = row[header as keyof typeof row]
+          // 處理包含逗號、引號或換行的值
+          if (typeof value === 'string' && (value.includes(',') || value.includes('"') || value.includes('\n'))) {
+            return `"${value.replace(/"/g, '""')}"`
+          }
+          return value
+        }).join(',')
+      )
+    ].join('\n')
+
+    // 加入 BOM 以支援中文
+    const BOM = '\uFEFF'
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute('download', `整理後資料表_${format(new Date(), 'yyyyMMdd_HHmmss')}.csv`)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  // 匯出 XLSX
+  const exportToXLSX = () => {
+    const data = prepareExportData()
+    if (data.length === 0) {
+      return
+    }
+
+    // 建立工作簿
+    const wb = XLSX.utils.book_new()
+    
+    // 將資料轉換為工作表
+    const ws = XLSX.utils.json_to_sheet(data)
+    
+    // 設定欄寬
+    const colWidths = [
+      { wch: 12 }, // 訪客姓名
+      { wch: 20 }, // 訪客公司
+      { wch: 25 }, // 訪客Email
+      { wch: 15 }, // 訪客電話
+      { wch: 20 }, // 會議名稱
+      { wch: 15 }, // 會議室
+      { wch: 20 }, // 會議時間
+      { wch: 12 }, // 邀請者姓名
+      { wch: 20 }, // 邀請者單位
+      { wch: 15 }, // 邀請者職稱
+      { wch: 25 }, // 邀請者Email
+      { wch: 20 }, // 簽到時間
+      { wch: 20 }, // 簽退時間
+      { wch: 15 }, // 停留時間
+    ]
+    ws['!cols'] = colWidths
+    
+    // 將工作表加入工作簿
+    XLSX.utils.book_append_sheet(wb, ws, '整理後資料表')
+    
+    // 匯出檔案
+    XLSX.writeFile(wb, `整理後資料表_${format(new Date(), 'yyyyMMdd_HHmmss')}.xlsx`)
+  }
+
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">
       <Card>
         <CardHeader>
-          <CardTitle>整理後資料表</CardTitle>
-          <CardDescription>查看和管理依據 Google 日曆的簽到簽退紀錄</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>整理後資料表</CardTitle>
+              <CardDescription>查看和管理依據 Google 日曆的簽到簽退紀錄</CardDescription>
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Download className="h-4 w-4 mr-2" />
+                  匯出
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={exportToCSV}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  匯出為 CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={exportToXLSX}>
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  匯出為 XLSX
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </CardHeader>
         <CardContent>
           {error && (

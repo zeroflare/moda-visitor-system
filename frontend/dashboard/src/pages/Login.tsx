@@ -55,7 +55,7 @@ export function Login({ onLogin }: LoginProps) {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-lg bg-primary/10">
-            <img src="/moda_logo.png" alt="moda" className="h-12 w-12 object-contain" />
+            <img src={`${import.meta.env.BASE_URL}moda_logo.png`} alt="moda" className="h-12 w-12 object-contain" />
           </div>
           <CardTitle className="text-2xl font-bold">登入</CardTitle>
           <CardDescription>數位發展部訪客系統</CardDescription>
