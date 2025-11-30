@@ -117,7 +117,7 @@ register/
 
 ## API 端點
 
-應用程式使用以下 API 端點（預設基礎 URL：`https://vistor.zeroflare.tw/api`）：
+應用程式使用以下 API 端點（預設基礎 URL：`/api`）：
 
 ### 發送 OTP
 - **端點**：`POST /register/otp`

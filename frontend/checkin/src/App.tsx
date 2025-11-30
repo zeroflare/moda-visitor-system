@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import './App.css'
 
-const API_BASE_URL = 'https://vistor.zeroflare.tw/api'
+const API_BASE_URL = '/api'
 
 interface QRCodeResponse {
   qrcodeImage: string

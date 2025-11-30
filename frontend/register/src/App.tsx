@@ -12,7 +12,7 @@ import { RegistrationNotice } from '@/components/RegistrationNotice'
 import { QRCodeSelection } from '@/components/QRCodeSelection'
 import { RegistrationForm } from '@/components/RegistrationForm'
 
-const API_BASE_URL = 'https://vistor.zeroflare.tw/api'
+const API_BASE_URL = '/api'
 
 interface QRCodeResponse {
   message: string
