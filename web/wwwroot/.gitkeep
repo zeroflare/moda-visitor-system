@@ -1,0 +1,4 @@
+# This directory is used to store static files
+# Files placed here will be served at the root URL path
+# Example: wwwroot/index.html will be accessible at https://yourdomain.com/index.html
+
