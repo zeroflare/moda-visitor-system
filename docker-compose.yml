@@ -1,13 +1,10 @@
 services:
-  app:
+  web:
     build:
-      context: backend
+      context: ./web
+      dockerfile: Dockerfile
     ports:
-      - "80:80"
+      - "8080:8080"
     env_file:
-      - backend/.env
-    volumes:
-      - wrangler-data:/app/.wrangler
-
-volumes:
-  wrangler-data:
+      - .env
+    restart: unless-stopped
