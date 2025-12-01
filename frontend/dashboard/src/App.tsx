@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import './App.css'
 import { AppSidebar } from '@/components/app-sidebar'
 import {
   Breadcrumb,
