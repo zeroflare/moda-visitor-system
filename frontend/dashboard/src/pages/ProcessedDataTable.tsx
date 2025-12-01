@@ -29,9 +29,8 @@ export function ProcessedDataTable() {
   
   // 篩選狀態
   const [filterVisitor, setFilterVisitor] = useState<string>('')
-  const [filterMeetingName, setFilterMeetingName] = useState<string>('')
+  const [filterMeeting, setFilterMeeting] = useState<string>('')
   const [filterInviter, setFilterInviter] = useState<string>('')
-  const [filterMeetingRoom, setFilterMeetingRoom] = useState<string>('')
   const [dateRange, setDateRange] = useState<DateRange | undefined>()
 
   // 載入資料
@@ -52,12 +51,6 @@ export function ProcessedDataTable() {
     loadData()
   }, [])
 
-  // 獲取所有唯一的會議室列表
-  const meetingRooms = useMemo(() => {
-    const rooms = new Set(visitorLogs.map(log => log.meetingRoom))
-    return Array.from(rooms).sort()
-  }, [visitorLogs])
-
   // 篩選邏輯
   const filteredLogs = useMemo(() => {
     return visitorLogs.filter(log => {
@@ -68,9 +61,10 @@ export function ProcessedDataTable() {
         log.vistorEmail.toLowerCase().includes(filterVisitor.toLowerCase()) ||
         log.vistorPhone.includes(filterVisitor)
 
-      // 會議名稱篩選
-      const meetingNameMatch = !filterMeetingName ||
-        log.meetingName.toLowerCase().includes(filterMeetingName.toLowerCase())
+      // 會議資訊篩選（會議名稱、會議室）
+      const meetingMatch = !filterMeeting ||
+        log.meetingName.toLowerCase().includes(filterMeeting.toLowerCase()) ||
+        log.meetingRoom.toLowerCase().includes(filterMeeting.toLowerCase())
 
       // 邀請者資訊篩選（姓名、單位、職稱、Email）
       const inviterMatch = !filterInviter ||
@@ -78,10 +72,6 @@ export function ProcessedDataTable() {
         log.inviterDept.toLowerCase().includes(filterInviter.toLowerCase()) ||
         log.inviterTitle.toLowerCase().includes(filterInviter.toLowerCase()) ||
         log.inviterEmail.toLowerCase().includes(filterInviter.toLowerCase())
-
-      // 會議室篩選
-      const meetingRoomMatch = !filterMeetingRoom ||
-        log.meetingRoom === filterMeetingRoom
 
       // 日期範圍篩選（根據簽到時間）
       let dateMatch = true
@@ -106,9 +96,9 @@ export function ProcessedDataTable() {
         }
       }
 
-      return visitorMatch && meetingNameMatch && inviterMatch && meetingRoomMatch && dateMatch
+      return visitorMatch && meetingMatch && inviterMatch && dateMatch
     })
-  }, [visitorLogs, filterVisitor, filterMeetingName, filterInviter, filterMeetingRoom, dateRange])
+  }, [visitorLogs, filterVisitor, filterMeeting, filterInviter, dateRange])
 
   // 分頁計算（基於篩選後的資料）
   const paginatedLogs = useMemo(() => {
@@ -122,7 +112,7 @@ export function ProcessedDataTable() {
   // 當篩選條件改變時，重置到第一頁
   useEffect(() => {
     setCurrentPage(1)
-  }, [filterVisitor, filterMeetingName, filterInviter, filterMeetingRoom, dateRange])
+  }, [filterVisitor, filterMeeting, filterInviter, dateRange])
 
   // 當資料載入完成時，重置到第一頁
   useEffect(() => {
@@ -162,14 +152,13 @@ export function ProcessedDataTable() {
   }
 
   // 檢查是否有篩選條件
-  const hasActiveFilters = filterVisitor || filterMeetingName || filterInviter || filterMeetingRoom || dateRange?.from || dateRange?.to
+  const hasActiveFilters = filterVisitor || filterMeeting || filterInviter || dateRange?.from || dateRange?.to
 
   // 清除所有篩選
   const clearAllFilters = () => {
     setFilterVisitor('')
-    setFilterMeetingName('')
+    setFilterMeeting('')
     setFilterInviter('')
-    setFilterMeetingRoom('')
     setDateRange(undefined)
   }
 
@@ -290,17 +279,17 @@ export function ProcessedDataTable() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4">
+    <div className="flex flex-1 flex-col gap-4 p-2 sm:p-4">
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
+        <CardHeader className="space-y-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <CardTitle>整理後資料表</CardTitle>
               <CardDescription>查看和管理依據 Google 日曆的簽到簽退紀錄</CardDescription>
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" className="w-full sm:w-auto">
                   <Download className="h-4 w-4 mr-2" />
                   匯出
                 </Button>
@@ -318,7 +307,7 @@ export function ProcessedDataTable() {
             </DropdownMenu>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-2 sm:px-6">
           {error && (
             <Alert variant="destructive" className="mb-4">
               <AlertTriangle className="h-4 w-4" />
@@ -328,8 +317,8 @@ export function ProcessedDataTable() {
 
           {/* 篩選區域 */}
           {!loading && (
-            <div className="mb-6 space-y-4">
-              <div className="flex items-center gap-2">
+            <div className="mb-4 sm:mb-6 space-y-3 sm:space-y-4">
+              <div className="flex flex-wrap items-center gap-2">
                 <Filter className="h-4 w-4 text-muted-foreground" />
                 <h3 className="text-sm font-medium">篩選條件</h3>
                 {hasActiveFilters && (
@@ -338,10 +327,10 @@ export function ProcessedDataTable() {
                   </span>
                 )}
               </div>
-              <div className="rounded-lg border bg-muted/30 p-4">
-                <div className="space-y-4">
-                  <div className="flex flex-wrap gap-4">
-                    <div className="space-y-2 min-w-[200px] max-w-[220px] flex-1">
+              <div className="rounded-lg border bg-muted/30 p-3 sm:p-4">
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                    <div className="space-y-2">
                       <Label htmlFor="filter-visitor" className="text-xs font-medium">
                         訪客資訊
                       </Label>
@@ -353,19 +342,19 @@ export function ProcessedDataTable() {
                         className="h-9"
                       />
                     </div>
-                    <div className="space-y-2 min-w-[200px] max-w-[220px] flex-1">
-                      <Label htmlFor="filter-meeting-name" className="text-xs font-medium">
-                        會議名稱
+                    <div className="space-y-2">
+                      <Label htmlFor="filter-meeting" className="text-xs font-medium">
+                        會議資訊
                       </Label>
                       <Input
-                        id="filter-meeting-name"
-                        placeholder="搜尋會議名稱..."
-                        value={filterMeetingName}
-                        onChange={(e) => setFilterMeetingName(e.target.value)}
+                        id="filter-meeting"
+                        placeholder="搜尋會議名稱、會議室..."
+                        value={filterMeeting}
+                        onChange={(e) => setFilterMeeting(e.target.value)}
                         className="h-9"
                       />
                     </div>
-                    <div className="space-y-2 min-w-[200px] max-w-[220px] flex-1">
+                    <div className="space-y-2">
                       <Label htmlFor="filter-inviter" className="text-xs font-medium">
                         邀請者資訊
                       </Label>
@@ -377,23 +366,7 @@ export function ProcessedDataTable() {
                         className="h-9"
                       />
                     </div>
-                    <div className="space-y-2 min-w-[200px] max-w-[220px] flex-1">
-                      <Label htmlFor="filter-meeting-room" className="text-xs font-medium">
-                        會議室
-                      </Label>
-                      <select
-                        id="filter-meeting-room"
-                        value={filterMeetingRoom}
-                        onChange={(e) => setFilterMeetingRoom(e.target.value)}
-                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <option value="">全部</option>
-                        {meetingRooms.map(room => (
-                          <option key={room} value={room}>{room}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="space-y-2 min-w-[200px] max-w-[280px] flex-1">
+                    <div className="space-y-2">
                       <Label className="text-xs font-medium">
                         日期範圍
                       </Label>
@@ -404,7 +377,7 @@ export function ProcessedDataTable() {
                             className="h-9 w-full justify-start text-left font-normal"
                           >
                             <CalendarIcon className="mr-2 h-4 w-4" />
-                            {formatDateRange()}
+                            <span className="truncate">{formatDateRange()}</span>
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
@@ -418,20 +391,20 @@ export function ProcessedDataTable() {
                         </PopoverContent>
                       </Popover>
                     </div>
-                    {hasActiveFilters && (
-                      <div className="space-y-2 flex items-end ml-auto">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={clearAllFilters}
-                          className="h-9"
-                        >
-                          <X className="h-3 w-3 mr-1" />
-                          清除篩選
-                        </Button>
-                      </div>
-                    )}
                   </div>
+                  {hasActiveFilters && (
+                    <div className="flex justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={clearAllFilters}
+                        className="h-9"
+                      >
+                        <X className="h-3 w-3 mr-1" />
+                        清除篩選
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -442,52 +415,54 @@ export function ProcessedDataTable() {
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
+            <div className="overflow-x-auto -mx-2 sm:mx-0">
+              <table className="w-full border-collapse min-w-[1000px]">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left p-4 font-medium">訪客資訊</th>
-                    <th className="text-left p-4 font-medium">會議名稱</th>
-                    <th className="text-left p-4 font-medium">會議室</th>
-                    <th className="text-left p-4 font-medium">會議時間</th>
-                    <th className="text-left p-4 font-medium">邀請者資訊</th>
-                    <th className="text-left p-4 font-medium">簽到時間</th>
-                    <th className="text-left p-4 font-medium">簽退時間</th>
-                    <th className="text-left p-4 font-medium">停留時間</th>
+                    <th className="text-left p-2 sm:p-3 lg:p-4 font-medium text-xs sm:text-sm">訪客資訊</th>
+                    <th className="text-left p-2 sm:p-3 lg:p-4 font-medium text-xs sm:text-sm">會議資訊</th>
+                    <th className="text-left p-2 sm:p-3 lg:p-4 font-medium text-xs sm:text-sm">邀請者資訊</th>
+                    <th className="text-left p-2 sm:p-3 lg:p-4 font-medium text-xs sm:text-sm">簽到時間</th>
+                    <th className="text-left p-2 sm:p-3 lg:p-4 font-medium text-xs sm:text-sm">簽退時間</th>
+                    <th className="text-left p-2 sm:p-3 lg:p-4 font-medium text-xs sm:text-sm">停留時間</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredLogs.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="text-center p-8 text-muted-foreground">
+                      <td colSpan={6} className="text-center p-6 sm:p-8 text-muted-foreground text-sm">
                         {visitorLogs.length === 0 ? '尚無資料' : '沒有符合篩選條件的資料'}
                       </td>
                     </tr>
                   ) : (
                     paginatedLogs.map((log, index) => (
                       <tr key={`${log.checkinTimestamp}-${index}`} className="border-b hover:bg-muted/50">
-                        <td className="p-4">
-                          <div className="space-y-1">
-                            <div className="font-medium">{log.vistorName}</div>
-                            <div className="text-sm">{log.vistorDept}</div>
-                            <div className="text-sm text-muted-foreground">{log.vistorEmail}</div>
-                            <div className="text-sm text-muted-foreground">{log.vistorPhone}</div>
+                        <td className="p-2 sm:p-3 lg:p-4">
+                          <div className="space-y-0.5 sm:space-y-1">
+                            <div className="font-medium text-xs sm:text-sm">{log.vistorName}</div>
+                            <div className="text-xs">{log.vistorDept}</div>
+                            <div className="text-xs text-muted-foreground truncate">{log.vistorEmail}</div>
+                            <div className="text-xs text-muted-foreground">{log.vistorPhone}</div>
                           </div>
                         </td>
-                        <td className="p-4">{log.meetingName}</td>
-                        <td className="p-4">{log.meetingRoom}</td>
-                        <td className="p-4 whitespace-nowrap">{log.meetingTime}</td>
-                        <td className="p-4">
-                          <div className="space-y-1">
-                            <div className="font-medium">{log.inviterName}</div>
-                            <div className="text-sm">{log.inviterDept}</div>
-                            <div className="text-sm text-muted-foreground">{log.inviterTitle}</div>
-                            <div className="text-sm text-muted-foreground">{log.inviterEmail}</div>
+                        <td className="p-2 sm:p-3 lg:p-4">
+                          <div className="space-y-0.5 sm:space-y-1">
+                            <div className="font-medium text-xs sm:text-sm">{log.meetingName}</div>
+                            <div className="text-xs text-muted-foreground">{log.meetingRoom}</div>
+                            <div className="text-xs text-muted-foreground whitespace-nowrap">{log.meetingTime}</div>
                           </div>
                         </td>
-                        <td className="p-4 whitespace-nowrap">{formatDateTime(log.checkinTimestamp)}</td>
-                        <td className="p-4 whitespace-nowrap">{formatDateTime(log.checkoutTimestamp)}</td>
-                        <td className="p-4 whitespace-nowrap">
+                        <td className="p-2 sm:p-3 lg:p-4">
+                          <div className="space-y-0.5 sm:space-y-1">
+                            <div className="font-medium text-xs sm:text-sm">{log.inviterName}</div>
+                            <div className="text-xs">{log.inviterDept}</div>
+                            <div className="text-xs text-muted-foreground">{log.inviterTitle}</div>
+                            <div className="text-xs text-muted-foreground truncate">{log.inviterEmail}</div>
+                          </div>
+                        </td>
+                        <td className="p-2 sm:p-3 lg:p-4 whitespace-nowrap text-xs sm:text-sm">{formatDateTime(log.checkinTimestamp)}</td>
+                        <td className="p-2 sm:p-3 lg:p-4 whitespace-nowrap text-xs sm:text-sm">{formatDateTime(log.checkoutTimestamp)}</td>
+                        <td className="p-2 sm:p-3 lg:p-4 whitespace-nowrap text-xs sm:text-sm">
                           {log.checkoutTimestamp 
                             ? calculateDuration(log.checkinTimestamp, log.checkoutTimestamp)
                             : '-'
@@ -499,13 +474,15 @@ export function ProcessedDataTable() {
                 </tbody>
               </table>
               {filteredLogs.length > 0 && (
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={setCurrentPage}
-                  totalItems={filteredLogs.length}
-                  itemsPerPage={ITEMS_PER_PAGE}
-                />
+                <div className="mt-4">
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                    totalItems={filteredLogs.length}
+                    itemsPerPage={ITEMS_PER_PAGE}
+                  />
+                </div>
               )}
           </div>
           )}
