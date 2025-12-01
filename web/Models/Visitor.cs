@@ -8,7 +8,7 @@ public class Visitor
     public string? VisitorDept { get; set; }
     public DateTime? CheckinAt { get; set; }
     public DateTime? CheckoutAt { get; set; }
-    public DateTime CreatedAt { get; set; }
+    public DateTime? CreatedAt { get; set; }
     public string MeetingId { get; set; } = string.Empty;
 }
 

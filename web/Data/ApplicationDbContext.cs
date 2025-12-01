@@ -73,7 +73,7 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.VisitorDept).HasMaxLength(200).HasColumnName("visitor_dept");
             entity.Property(e => e.CheckinAt).HasColumnName("checkin_at");
             entity.Property(e => e.CheckoutAt).HasColumnName("checkout_at");
-            entity.Property(e => e.CreatedAt).IsRequired().HasColumnName("created_at");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
             entity.Property(e => e.MeetingId).HasMaxLength(255).IsRequired().HasColumnName("meeting_id");
             entity.ToTable("visitors");
             

@@ -12,6 +12,7 @@ public record CheckinResultResponse(
     string? VisitorDept,
     string? VisitorPhone,
     string MeetingTime,
+    string MeetingName,
     string MeetingRoom
 );
 
