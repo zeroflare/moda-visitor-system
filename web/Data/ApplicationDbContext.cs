@@ -12,6 +12,11 @@ public class ApplicationDbContext : DbContext
 
     public DbSet<Counter> Counters { get; set; }
     public DbSet<MeetingRoom> MeetingRooms { get; set; }
+    public DbSet<Meeting> Meetings { get; set; }
+    public DbSet<Visitor> Visitors { get; set; }
+    public DbSet<Employee> Employees { get; set; }
+    public DbSet<CheckLog> CheckLogs { get; set; }
+    public DbSet<NotifyWebhook> NotifyWebhooks { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -35,6 +40,84 @@ public class ApplicationDbContext : DbContext
             
             // 建立外鍵關係（可選，如果需要資料庫層級的外鍵約束）
             entity.HasIndex(e => e.CounterId);
+        });
+
+        modelBuilder.Entity<Meeting>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(255);
+            entity.Property(e => e.InviterEmail).HasMaxLength(255).IsRequired();
+            entity.Property(e => e.InviterName).HasMaxLength(200);
+            entity.Property(e => e.InviterDept).HasMaxLength(200);
+            entity.Property(e => e.InviterTitle).HasMaxLength(200);
+            entity.Property(e => e.StartAt).IsRequired();
+            entity.Property(e => e.EndAt).IsRequired();
+            entity.Property(e => e.MeetingroomId).HasMaxLength(255).IsRequired();
+            entity.ToTable("meetings");
+            
+            // 建立索引
+            entity.HasIndex(e => e.MeetingroomId);
+            entity.HasIndex(e => e.InviterEmail);
+            entity.HasIndex(e => e.StartAt);
+        });
+
+        modelBuilder.Entity<Visitor>(entity =>
+        {
+            entity.HasKey(e => new { e.MeetingId, e.VisitorEmail });
+            entity.Property(e => e.VisitorEmail).HasMaxLength(255).IsRequired();
+            entity.Property(e => e.VisitorName).HasMaxLength(200);
+            entity.Property(e => e.VisitorPhone).HasMaxLength(50);
+            entity.Property(e => e.VisitorDept).HasMaxLength(200);
+            entity.Property(e => e.CheckinAt);
+            entity.Property(e => e.CheckoutAt);
+            entity.Property(e => e.MeetingId).HasMaxLength(255).IsRequired();
+            entity.ToTable("visitors");
+            
+            // 建立索引
+            entity.HasIndex(e => e.MeetingId);
+            entity.HasIndex(e => e.VisitorEmail);
+        });
+
+        modelBuilder.Entity<Employee>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).IsRequired();
+            entity.Property(e => e.Email).HasMaxLength(255).IsRequired();
+            entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.Dept).HasMaxLength(200);
+            entity.Property(e => e.Costcenter).HasMaxLength(200);
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.ToTable("employees");
+            
+            // 建立索引
+            entity.HasIndex(e => e.Email).IsUnique();
+        });
+
+        modelBuilder.Entity<CheckLog>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).ValueGeneratedOnAdd();
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.VisitorEmail).HasMaxLength(255).IsRequired();
+            entity.Property(e => e.VisitorName).HasMaxLength(200);
+            entity.Property(e => e.VisitorPhone).HasMaxLength(50);
+            entity.Property(e => e.VisitorDept).HasMaxLength(200);
+            entity.Property(e => e.CounterId).HasMaxLength(50).IsRequired();
+            entity.ToTable("check_logs");
+            
+            // 建立索引
+            entity.HasIndex(e => e.CreatedAt);
+            entity.HasIndex(e => e.VisitorEmail);
+            entity.HasIndex(e => e.CounterId);
+        });
+
+        modelBuilder.Entity<NotifyWebhook>(entity =>
+        {
+            entity.HasKey(e => e.Dept);
+            entity.Property(e => e.Dept).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.Type).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.Webhook).HasMaxLength(500).IsRequired();
+            entity.ToTable("notify_webhooks");
         });
     }
 }
