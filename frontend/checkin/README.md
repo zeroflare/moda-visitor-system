@@ -150,13 +150,13 @@ GET /api/checkin/result?transactionId={uuid}
 目前 API 基礎 URL 寫死在程式碼中：
 
 ```typescript
-const API_BASE_URL = 'https://vistor.zeroflare.tw/api'
+const API_BASE_URL = '/api'
 ```
 
 未來可考慮使用環境變數：
 
 ```env
-VITE_API_BASE_URL=https://vistor.zeroflare.tw/api
+VITE_API_BASE_URL=/api
 ```
 
 ## 測試

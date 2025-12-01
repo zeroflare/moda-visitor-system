@@ -20,7 +20,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { CheckCircle2, Clock, Mail, Loader2 } from 'lucide-react'
 
-const API_BASE_URL = 'https://vistor.zeroflare.tw/api'
+const API_BASE_URL = '/api'
 
 interface RegistrationForm {
   name: string
