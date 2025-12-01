@@ -46,6 +46,7 @@ ON DUPLICATE KEY UPDATE name=VALUES(name), counter_id=VALUES(counter_id);
 -- 創建會議表
 CREATE TABLE IF NOT EXISTS meetings (
     id VARCHAR(255) PRIMARY KEY,
+    meetingname VARCHAR(200),
     inviter_email VARCHAR(255) NOT NULL,
     inviter_name VARCHAR(200),
     inviter_dept VARCHAR(200),
@@ -66,6 +67,7 @@ CREATE TABLE IF NOT EXISTS visitors (
     visitor_dept VARCHAR(200),
     checkin_at DATETIME,
     checkout_at DATETIME,
+    created_at DATETIME NOT NULL,
     meeting_id VARCHAR(255) NOT NULL,
     PRIMARY KEY (meeting_id, visitor_email),
     INDEX idx_meeting_id (meeting_id),
@@ -88,14 +90,15 @@ CREATE TABLE IF NOT EXISTS employees (
 CREATE TABLE IF NOT EXISTS check_logs (
     id INT AUTO_INCREMENT PRIMARY KEY,
     created_at DATETIME NOT NULL,
+    type VARCHAR(50) NOT NULL,
     visitor_email VARCHAR(255) NOT NULL,
     visitor_name VARCHAR(200),
     visitor_phone VARCHAR(50),
     visitor_dept VARCHAR(200),
-    counter_id VARCHAR(50) NOT NULL,
+    meeting_id VARCHAR(255) NOT NULL,
     INDEX idx_created_at (created_at),
     INDEX idx_visitor_email (visitor_email),
-    INDEX idx_counter_id (counter_id)
+    INDEX idx_meeting_id (meeting_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 創建 webhook 表
@@ -110,5 +113,11 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(255) PRIMARY KEY,
     username VARCHAR(200) NOT NULL,
     role VARCHAR(50) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 創建 secrets 表
+CREATE TABLE IF NOT EXISTS secrets (
+    id VARCHAR(255) PRIMARY KEY,
+    value TEXT NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

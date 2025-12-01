@@ -47,6 +47,12 @@ builder.Services.AddScoped<INotifyWebhookService, NotifyWebhookService>();
 // Add User Service
 builder.Services.AddScoped<IUserService, UserService>();
 
+// Add VisitorLog Service
+builder.Services.AddScoped<IVisitorLogService, VisitorLogService>();
+
+// Add CheckLog Service
+builder.Services.AddScoped<ICheckLogService, CheckLogService>();
+
 // Add Redis
 var redisConnectionString = builder.Configuration.GetConnectionString("Redis");
 if (!string.IsNullOrEmpty(redisConnectionString))

@@ -3,6 +3,7 @@ namespace web.Models;
 public class Meeting
 {
     public string Id { get; set; } = string.Empty;
+    public string? MeetingName { get; set; }
     public string InviterEmail { get; set; } = string.Empty;
     public string? InviterName { get; set; }
     public string? InviterDept { get; set; }
