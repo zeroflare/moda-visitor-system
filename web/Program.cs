@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+using web.Data;
 using web.Middleware;
 using web.Services;
 
@@ -7,6 +9,20 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// Add Database
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (!string.IsNullOrEmpty(connectionString))
+{
+    builder.Services.AddDbContext<ApplicationDbContext>(options =>
+        options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+}
+
+// Add Counter Service
+builder.Services.AddScoped<ICounterService, CounterService>();
+
+// Add MeetingRoom Service
+builder.Services.AddScoped<IMeetingRoomService, MeetingRoomService>();
 
 // Add Memory Cache
 builder.Services.AddMemoryCache();

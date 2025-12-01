@@ -7,10 +7,10 @@ public record CheckinResultResponse(
     string InviterName,
     string InviterDept,
     string InviterTitle,
-    string? VistorEmail,
-    string? VistorName,
-    string? VistorDept,
-    string? VistorPhone,
+    string? VisitorEmail,
+    string? VisitorName,
+    string? VisitorDept,
+    string? VisitorPhone,
     string MeetingTime,
     string MeetingRoom
 );
