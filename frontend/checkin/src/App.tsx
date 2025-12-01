@@ -20,6 +20,7 @@ interface CheckinResult {
   visitorPhone: string
   meetingTime: string
   meetingRoom: string
+  meetingName: string
 }
 
 function App() {
@@ -212,6 +213,7 @@ function App() {
             </div>
             <div className="info-item">
               <h3>會議資訊</h3>
+              <p><strong>會議名稱:</strong> {checkinResult.meetingName}</p>
               <p><strong>時間:</strong> {checkinResult.meetingTime}</p>
               <p><strong>地點:</strong> {checkinResult.meetingRoom}</p>
             </div>
