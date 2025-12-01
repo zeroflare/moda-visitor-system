@@ -14,12 +14,13 @@ interface CheckinResult {
   inviterName: string
   inviterDept: string
   inviterTitle: string
-  vistorEmail: string
-  vistorName: string
-  vistorDept: string
-  vistorPhone: string
+  visitorEmail: string
+  visitorName: string
+  visitorDept: string
+  visitorPhone: string
   meetingTime: string
   meetingRoom: string
+  meetingName: string
 }
 
 function App() {
@@ -34,6 +35,12 @@ function App() {
 
   // 生成 QRCode 的函數
   const generateQRCode = useCallback(async () => {
+    // 清除舊的倒計時定時器
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current)
+      countdownIntervalRef.current = null
+    }
+
     const newTransactionId = uuidv4()
     setTransactionId(newTransactionId)
     setLoading(true)
@@ -170,6 +177,13 @@ function App() {
               <div className="countdown-display">
                 QRCode 將在 {Math.floor(countdown / 60)}:{(countdown % 60).toString().padStart(2, '0')} 後更新
               </div>
+              <button 
+                className="refresh-button" 
+                onClick={generateQRCode}
+                disabled={loading}
+              >
+                {loading ? '重新整理中...' : '重新整理 QRCode'}
+              </button>
             </div>
             <div className="qrcode-divider"></div>
             <div className="qrcode-right">
@@ -205,13 +219,14 @@ function App() {
             </div>
             <div className="info-item">
               <h3>訪客資訊</h3>
-              <p><strong>姓名:</strong> {checkinResult.vistorName}</p>
-              <p><strong>Email:</strong> {checkinResult.vistorEmail}</p>
-              <p><strong>單位:</strong> {checkinResult.vistorDept}</p>
-              <p><strong>電話:</strong> {checkinResult.vistorPhone}</p>
+              <p><strong>姓名:</strong> {checkinResult.visitorName}</p>
+              <p><strong>Email:</strong> {checkinResult.visitorEmail}</p>
+              <p><strong>單位:</strong> {checkinResult.visitorDept}</p>
+              <p><strong>電話:</strong> {checkinResult.visitorPhone}</p>
             </div>
             <div className="info-item">
               <h3>會議資訊</h3>
+              <p><strong>會議名稱:</strong> {checkinResult.meetingName}</p>
               <p><strong>時間:</strong> {checkinResult.meetingTime}</p>
               <p><strong>地點:</strong> {checkinResult.meetingRoom}</p>
             </div>
