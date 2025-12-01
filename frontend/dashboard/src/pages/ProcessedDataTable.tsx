@@ -56,10 +56,10 @@ export function ProcessedDataTable() {
     return visitorLogs.filter(log => {
       // 訪客資訊篩選（姓名、公司、Email、電話）
       const visitorMatch = !filterVisitor || 
-        log.vistorName.toLowerCase().includes(filterVisitor.toLowerCase()) ||
-        log.vistorDept.toLowerCase().includes(filterVisitor.toLowerCase()) ||
-        log.vistorEmail.toLowerCase().includes(filterVisitor.toLowerCase()) ||
-        log.vistorPhone.includes(filterVisitor)
+        log.visitorName.toLowerCase().includes(filterVisitor.toLowerCase()) ||
+        log.visitorDept.toLowerCase().includes(filterVisitor.toLowerCase()) ||
+        log.visitorEmail.toLowerCase().includes(filterVisitor.toLowerCase()) ||
+        log.visitorPhone.includes(filterVisitor)
 
       // 會議資訊篩選（會議名稱、會議室）
       const meetingMatch = !filterMeeting ||
@@ -182,10 +182,10 @@ export function ProcessedDataTable() {
   // 準備匯出資料
   const prepareExportData = () => {
     return filteredLogs.map(log => ({
-      '訪客姓名': log.vistorName,
-      '訪客公司': log.vistorDept,
-      '訪客Email': log.vistorEmail,
-      '訪客電話': log.vistorPhone,
+      '訪客姓名': log.visitorName,
+      '訪客公司': log.visitorDept,
+      '訪客Email': log.visitorEmail,
+      '訪客電話': log.visitorPhone,
       '會議名稱': log.meetingName,
       '會議室': log.meetingRoom,
       '會議時間': log.meetingTime,
@@ -439,10 +439,10 @@ export function ProcessedDataTable() {
                       <tr key={`${log.checkinTimestamp}-${index}`} className="border-b hover:bg-muted/50">
                         <td className="p-2 sm:p-3 lg:p-4">
                           <div className="space-y-0.5 sm:space-y-1">
-                            <div className="font-medium text-xs sm:text-sm">{log.vistorName}</div>
-                            <div className="text-xs">{log.vistorDept}</div>
-                            <div className="text-xs text-muted-foreground truncate">{log.vistorEmail}</div>
-                            <div className="text-xs text-muted-foreground">{log.vistorPhone}</div>
+                            <div className="font-medium text-xs sm:text-sm">{log.visitorName}</div>
+                            <div className="text-xs">{log.visitorDept}</div>
+                            <div className="text-xs text-muted-foreground truncate">{log.visitorEmail}</div>
+                            <div className="text-xs text-muted-foreground">{log.visitorPhone}</div>
                           </div>
                         </td>
                         <td className="p-2 sm:p-3 lg:p-4">

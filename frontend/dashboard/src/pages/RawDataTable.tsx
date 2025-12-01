@@ -124,12 +124,12 @@ export function RawDataTable() {
                         <td className="p-4">{log.inviterTitle}</td>
                         <td className="p-4">
                           <div>
-                            <div className="font-medium">{log.vistorName}</div>
-                            <div className="text-sm text-muted-foreground">{log.vistorEmail}</div>
+                            <div className="font-medium">{log.visitorName}</div>
+                            <div className="text-sm text-muted-foreground">{log.visitorEmail}</div>
                           </div>
                         </td>
-                        <td className="p-4">{log.vistorDept}</td>
-                        <td className="p-4">{log.vistorPhone}</td>
+                        <td className="p-4">{log.visitorDept}</td>
+                        <td className="p-4">{log.visitorPhone}</td>
                         <td className="p-4 whitespace-nowrap">{log.meetingTime}</td>
                         <td className="p-4">{log.meetingName}</td>
                         <td className="p-4">{log.meetingRoom}</td>
