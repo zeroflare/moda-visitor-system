@@ -10,5 +10,10 @@ public interface IMeetingRoomService
     Task<MeetingRoom> CreateMeetingRoomAsync(MeetingRoom meetingRoom);
     Task<MeetingRoom?> UpdateMeetingRoomAsync(string id, MeetingRoom meetingRoom);
     Task<bool> DeleteMeetingRoomAsync(string id);
+    
+    // 包含櫃檯名稱的方法
+    Task<IEnumerable<MeetingRoomResponse>> GetAllMeetingRoomsWithCounterNameAsync();
+    Task<MeetingRoomResponse?> GetMeetingRoomByIdWithCounterNameAsync(string id);
+    Task<IEnumerable<MeetingRoomResponse>> GetMeetingRoomsByCounterIdWithCounterNameAsync(string counterId);
 }
 

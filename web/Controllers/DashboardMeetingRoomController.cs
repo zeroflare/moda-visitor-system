@@ -23,18 +23,18 @@ public class DashboardMeetingRoomController : ControllerBase
     /// 取得所有會議室列表
     /// </summary>
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<MeetingRoom>>> GetMeetingRooms([FromQuery] string? counterId)
+    public async Task<ActionResult<IEnumerable<MeetingRoomResponse>>> GetMeetingRooms([FromQuery] string? counterId)
     {
         try
         {
-            IEnumerable<MeetingRoom> meetingRooms;
+            IEnumerable<MeetingRoomResponse> meetingRooms;
             if (!string.IsNullOrEmpty(counterId))
             {
-                meetingRooms = await _meetingRoomService.GetMeetingRoomsByCounterIdAsync(counterId);
+                meetingRooms = await _meetingRoomService.GetMeetingRoomsByCounterIdWithCounterNameAsync(counterId);
             }
             else
             {
-                meetingRooms = await _meetingRoomService.GetAllMeetingRoomsAsync();
+                meetingRooms = await _meetingRoomService.GetAllMeetingRoomsWithCounterNameAsync();
             }
             return Ok(meetingRooms);
         }
@@ -49,11 +49,11 @@ public class DashboardMeetingRoomController : ControllerBase
     /// 根據 ID 取得會議室資訊
     /// </summary>
     [HttpGet("{id}")]
-    public async Task<ActionResult<MeetingRoom>> GetMeetingRoom(string id)
+    public async Task<ActionResult<MeetingRoomResponse>> GetMeetingRoom(string id)
     {
         try
         {
-            var meetingRoom = await _meetingRoomService.GetMeetingRoomByIdAsync(id);
+            var meetingRoom = await _meetingRoomService.GetMeetingRoomByIdWithCounterNameAsync(id);
             if (meetingRoom == null)
             {
                 return NotFound(new { error = "會議室不存在" });

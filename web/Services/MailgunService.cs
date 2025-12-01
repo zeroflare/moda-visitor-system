@@ -26,8 +26,8 @@ public class MailgunService : IMailService
         content.Add(new StringContent($"數位發展部訪客系統<noreply@{domain}>"), "from");
         content.Add(new StringContent(email), "to");
         content.Add(new StringContent("訪客系統電子信箱驗證碼"), "subject");
-        content.Add(new StringContent($"您好！\n\n您的驗證碼是：{otp}\n請於 10 分鐘內輸入完成註冊。"), "text");
-        content.Add(new StringContent($"<p>您好！</p><p>您的驗證碼是：<strong>{otp}</strong></p><p>請於 10 分鐘內輸入完成註冊。</p>"), "html");
+        content.Add(new StringContent($"您好！\n\n您的驗證碼是：{otp}\n請於 10 分鐘內輸入完成驗證。"), "text");
+        content.Add(new StringContent($"<p>您好！</p><p>您的驗證碼是：<strong>{otp}</strong></p><p>請於 10 分鐘內輸入完成驗證。</p>"), "html");
 
         var request = new HttpRequestMessage(HttpMethod.Post, url);
         request.Headers.Authorization = new AuthenticationHeaderValue("Basic", 
