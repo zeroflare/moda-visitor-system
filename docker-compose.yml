@@ -8,3 +8,12 @@ services:
     env_file:
       - .env
     restart: unless-stopped
+
+  console:
+    build:
+      context: ./console
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    restart: unless-stopped
+    # 不 scale，維持單一實例執行排程任務
