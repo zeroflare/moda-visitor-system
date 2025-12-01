@@ -14,10 +14,10 @@ interface CheckinResult {
   inviterName: string
   inviterDept: string
   inviterTitle: string
-  vistorEmail: string
-  vistorName: string
-  vistorDept: string
-  vistorPhone: string
+  visitorEmail: string
+  visitorName: string
+  visitorDept: string
+  visitorPhone: string
   meetingTime: string
   meetingRoom: string
 }
@@ -205,10 +205,10 @@ function App() {
             </div>
             <div className="info-item">
               <h3>訪客資訊</h3>
-              <p><strong>姓名:</strong> {checkinResult.vistorName}</p>
-              <p><strong>Email:</strong> {checkinResult.vistorEmail}</p>
-              <p><strong>單位:</strong> {checkinResult.vistorDept}</p>
-              <p><strong>電話:</strong> {checkinResult.vistorPhone}</p>
+              <p><strong>姓名:</strong> {checkinResult.visitorName}</p>
+              <p><strong>Email:</strong> {checkinResult.visitorEmail}</p>
+              <p><strong>單位:</strong> {checkinResult.visitorDept}</p>
+              <p><strong>電話:</strong> {checkinResult.visitorPhone}</p>
             </div>
             <div className="info-item">
               <h3>會議資訊</h3>
