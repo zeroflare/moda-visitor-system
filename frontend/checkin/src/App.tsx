@@ -35,6 +35,12 @@ function App() {
 
   // 生成 QRCode 的函數
   const generateQRCode = useCallback(async () => {
+    // 清除舊的倒計時定時器
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current)
+      countdownIntervalRef.current = null
+    }
+
     const newTransactionId = uuidv4()
     setTransactionId(newTransactionId)
     setLoading(true)
@@ -171,6 +177,13 @@ function App() {
               <div className="countdown-display">
                 QRCode 將在 {Math.floor(countdown / 60)}:{(countdown % 60).toString().padStart(2, '0')} 後更新
               </div>
+              <button 
+                className="refresh-button" 
+                onClick={generateQRCode}
+                disabled={loading}
+              >
+                {loading ? '重新整理中...' : '重新整理 QRCode'}
+              </button>
             </div>
             <div className="qrcode-divider"></div>
             <div className="qrcode-right">
