@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS meetings (
     inviter_title VARCHAR(200),
     start_at DATETIME NOT NULL,
     end_at DATETIME NOT NULL,
-    meetingroom_id VARCHAR(255) NOT NULL,
+    meetingroom_id VARCHAR(255),
     INDEX idx_meetingroom_id (meetingroom_id),
     INDEX idx_inviter_email (inviter_email),
     INDEX idx_start_at (start_at)

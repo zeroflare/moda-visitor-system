@@ -55,7 +55,7 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.InviterTitle).HasMaxLength(200).HasColumnName("inviter_title");
             entity.Property(e => e.StartAt).IsRequired().HasColumnName("start_at");
             entity.Property(e => e.EndAt).IsRequired().HasColumnName("end_at");
-            entity.Property(e => e.MeetingroomId).HasMaxLength(255).IsRequired().HasColumnName("meetingroom_id");
+            entity.Property(e => e.MeetingroomId).HasMaxLength(255).HasColumnName("meetingroom_id");
             entity.ToTable("meetings");
             
             // 建立索引

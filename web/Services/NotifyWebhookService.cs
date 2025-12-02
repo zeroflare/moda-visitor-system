@@ -23,6 +23,12 @@ public class NotifyWebhookService : INotifyWebhookService
         return await _context.NotifyWebhooks.FindAsync(dept);
     }
 
+    public async Task<NotifyWebhook?> GetNotifyWebhookByDeptAndTypeAsync(string dept, string type)
+    {
+        return await _context.NotifyWebhooks
+            .FirstOrDefaultAsync(w => w.Dept == dept && w.Type == type);
+    }
+
     public async Task<NotifyWebhook> CreateNotifyWebhookAsync(NotifyWebhook notifyWebhook)
     {
         _context.NotifyWebhooks.Add(notifyWebhook);

@@ -29,7 +29,7 @@ public class CheckLogService : ICheckLogService
             )
             .GroupJoin(
                 _context.MeetingRooms,
-                cm => cm.Meeting != null ? cm.Meeting.MeetingroomId : string.Empty,
+                cm => cm.Meeting != null && !string.IsNullOrEmpty(cm.Meeting.MeetingroomId) ? cm.Meeting.MeetingroomId : string.Empty,
                 mr => mr.Id,
                 (cm, meetingRooms) => new { cm.CheckLog, cm.Meeting, MeetingRooms = meetingRooms }
             )

@@ -10,6 +10,6 @@ public class Meeting
     public string? InviterTitle { get; set; }
     public DateTime StartAt { get; set; }
     public DateTime EndAt { get; set; }
-    public string MeetingroomId { get; set; } = string.Empty;
+    public string? MeetingroomId { get; set; }
 }
 
