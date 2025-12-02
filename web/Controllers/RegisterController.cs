@@ -119,6 +119,9 @@ public class RegisterController : ControllerBase
             // 呼叫 TWDIW 服務
             var result = await _twdiwService.SubmitRegistrationAsync(request);
 
+            // 註冊完成後，刪除 token（註銷 token）
+            await _cacheService.DeleteAsync(cacheKey);
+
             return Ok(result);
         }
         catch (Exception ex)
@@ -141,18 +144,14 @@ public class RegisterController : ControllerBase
             var result = await _twdiwService.GetRegistrationResultAsync(transactionId);
             
             // 檢查是否註冊完成（根據返回的 Message 判斷）
+            string? message = null;
             try
             {
                 if (result is System.Text.Json.JsonElement jsonElement)
                 {
                     if (jsonElement.TryGetProperty("Message", out var messageElement))
                     {
-                        var message = messageElement.GetString();
-                        if (message == "Registration completed")
-                        {
-                            // 發送 Google Chat 通知
-                            await SendRegistrationCompletedNotificationAsync(transactionId);
-                        }
+                        message = messageElement.GetString();
                     }
                 }
                 else
@@ -162,12 +161,7 @@ public class RegisterController : ControllerBase
                     var messageProperty = resultType.GetProperty("Message");
                     if (messageProperty != null)
                     {
-                        var message = messageProperty.GetValue(result)?.ToString();
-                        if (message == "Registration completed")
-                        {
-                            // 發送 Google Chat 通知
-                            await SendRegistrationCompletedNotificationAsync(transactionId);
-                        }
+                        message = messageProperty.GetValue(result)?.ToString();
                     }
                 }
             }
@@ -175,6 +169,26 @@ public class RegisterController : ControllerBase
             {
                 _logger.LogError(notifyEx, "檢查註冊完成狀態或發送通知失敗");
                 // 不影響主要流程，繼續執行
+            }
+
+            // 如果還在等待註冊，返回 400
+            if (message == "Waiting for registration")
+            {
+                return BadRequest(new { error = true, message = "Waiting for registration" });
+            }
+
+            // 如果註冊完成，發送通知
+            if (message == "Registration completed")
+            {
+                try
+                {
+                    await SendRegistrationCompletedNotificationAsync(transactionId, result);
+                }
+                catch (Exception notifyEx)
+                {
+                    _logger.LogError(notifyEx, "發送註冊完成通知失敗");
+                    // 不影響主要流程，繼續執行
+                }
             }
             
             return Ok(result);
@@ -220,7 +234,7 @@ public class RegisterController : ControllerBase
     /// <summary>
     /// 發送註冊完成通知到 Google Chat
     /// </summary>
-    private async Task SendRegistrationCompletedNotificationAsync(string transactionId)
+    private async Task SendRegistrationCompletedNotificationAsync(string transactionId, object result)
     {
         try
         {
@@ -228,9 +242,105 @@ public class RegisterController : ControllerBase
             if (adminWebhook != null && !string.IsNullOrEmpty(adminWebhook.Webhook))
             {
                 var registrationTime = DateTime.UtcNow.AddHours(8).ToString("yyyy-MM-dd HH:mm");
+                
+                // 從結果中提取用戶註冊資訊
+                string? name = null;
+                string? email = null;
+                string? company = null;
+                string? phone = null;
+
+                try
+                {
+                    System.Text.Json.JsonElement? dataElement = null;
+
+                    if (result is System.Text.Json.JsonElement jsonElement)
+                    {
+                        if (jsonElement.TryGetProperty("Data", out var dataProperty))
+                        {
+                            dataElement = dataProperty;
+                        }
+                    }
+                    else
+                    {
+                        // 使用反射獲取 Data 屬性
+                        var resultType = result.GetType();
+                        var dataProperty = resultType.GetProperty("Data");
+                        if (dataProperty != null)
+                        {
+                            var dataValue = dataProperty.GetValue(result);
+                            if (dataValue is System.Text.Json.JsonElement jsonData)
+                            {
+                                dataElement = jsonData;
+                            }
+                        }
+                    }
+
+                    if (dataElement.HasValue)
+                    {
+                        var data = dataElement.Value;
+                        
+                        // 嘗試從 claims 中提取資訊（類似 GetCheckinResultAsync 的方式）
+                        if (data.TryGetProperty("data", out var dataArray) && dataArray.ValueKind == System.Text.Json.JsonValueKind.Array && dataArray.GetArrayLength() > 0)
+                        {
+                            var firstItem = dataArray[0];
+                            if (firstItem.TryGetProperty("claims", out var claims))
+                            {
+                                foreach (var claim in claims.EnumerateArray())
+                                {
+                                    if (claim.TryGetProperty("ename", out var ename))
+                                    {
+                                        var enameValue = ename.GetString();
+                                        if (claim.TryGetProperty("value", out var value))
+                                        {
+                                            var valueString = value.GetString();
+                                            switch (enameValue)
+                                            {
+                                                case "name":
+                                                    name = valueString;
+                                                    break;
+                                                case "email":
+                                                    email = valueString;
+                                                    break;
+                                                case "company":
+                                                    company = valueString;
+                                                    break;
+                                                case "phone":
+                                                    phone = valueString;
+                                                    break;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "提取用戶註冊資訊失敗，將使用預設值");
+                }
+
+                // 構建通知訊息
                 var notificationMessage = $"✅ 訪客註冊完成通知\n\n" +
                                          $"交易 ID：{transactionId}\n" +
                                          $"完成時間：{registrationTime}";
+
+                if (!string.IsNullOrEmpty(name))
+                {
+                    notificationMessage += $"\n姓名：{name}";
+                }
+                if (!string.IsNullOrEmpty(email))
+                {
+                    notificationMessage += $"\n電子郵件：{email}";
+                }
+                if (!string.IsNullOrEmpty(company))
+                {
+                    notificationMessage += $"\n公司：{company}";
+                }
+                if (!string.IsNullOrEmpty(phone))
+                {
+                    notificationMessage += $"\n電話：{phone}";
+                }
 
                 await _googleChatService.SendNotificationAsync(adminWebhook.Webhook, notificationMessage);
             }
