@@ -37,38 +37,23 @@ public class RegistrationInvitationService : IRegistrationInvitationService
 
         try
         {
-            // 取得台灣時區的明天時間範圍
-            var taiwanTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Taipei");
-            var nowTaiwan = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, taiwanTimeZone);
-            var tomorrow = nowTaiwan.Date.AddDays(1);
-            var tomorrowStart = TimeZoneInfo.ConvertTimeToUtc(tomorrow, taiwanTimeZone);
-            var tomorrowEnd = TimeZoneInfo.ConvertTimeToUtc(tomorrow.AddDays(1).AddSeconds(-1), taiwanTimeZone);
+            // 計算36小時內的時間範圍
+            var now = DateTime.UtcNow;
+            var timeRangeEnd = now.AddHours(36);
 
-            _logger.LogInformation("Querying visitors with meetings tomorrow (UTC: {Start:yyyy-MM-dd HH:mm:ss} to {End:yyyy-MM-dd HH:mm:ss})", 
-                tomorrowStart, tomorrowEnd);
+            _logger.LogInformation("Querying meetings within 36 hours (UTC: {Now:yyyy-MM-dd HH:mm:ss} to {End:yyyy-MM-dd HH:mm:ss})", 
+                now, timeRangeEnd);
 
-            // 查詢隔天有會議的受邀人，且會議的 meetingroom_id 存在於 meeting_room 資料庫
-            var validVisitors = await _context.Visitors
-                .Join(
-                    _context.Meetings,
-                    v => v.MeetingId,
-                    m => m.Id,
-                    (v, m) => new { Visitor = v, Meeting = m }
-                )
-                .Where(vm => 
-                    vm.Meeting.StartAt >= tomorrowStart && 
-                    vm.Meeting.StartAt <= tomorrowEnd &&
-                    vm.Meeting.MeetingroomId != null)
-                .Select(vm => new 
-                { 
-                    vm.Visitor.VisitorEmail, 
-                    vm.Meeting.MeetingroomId,
-                    vm.Meeting.Id
-                })
-                .Distinct()
+            // 查詢36小時內且 notified = false 的會議，且 meetingroom_id 存在於 meeting_room 資料庫
+            var eligibleMeetings = await _context.Meetings
+                .Where(m => 
+                    m.StartAt >= now && 
+                    m.StartAt <= timeRangeEnd &&
+                    !m.Notified &&
+                    m.MeetingroomId != null)
                 .ToListAsync(cancellationToken);
 
-            _logger.LogInformation("Found {Count} visitors with meetings tomorrow", validVisitors.Count);
+            _logger.LogInformation("Found {Count} eligible meetings within 36 hours that need notification", eligibleMeetings.Count);
 
             // 獲取所有存在的 meetingroom_id
             var allMeetingRooms = await _meetingRoomService.GetAllMeetingRoomsAsync();
@@ -76,14 +61,12 @@ public class RegistrationInvitationService : IRegistrationInvitationService
 
             _logger.LogInformation("Found {Count} meeting rooms in database", existingMeetingRoomIds.Count);
 
-            // 過濾出 meetingroom_id 存在於資料庫的受邀人
-            var eligibleVisitors = validVisitors
-                .Where(v => v.MeetingroomId != null && existingMeetingRoomIds.Contains(v.MeetingroomId))
-                .Select(v => v.VisitorEmail)
-                .Distinct()
+            // 過濾出 meetingroom_id 存在於資料庫的會議
+            var validMeetings = eligibleMeetings
+                .Where(m => existingMeetingRoomIds.Contains(m.MeetingroomId))
                 .ToList();
 
-            _logger.LogInformation("Found {Count} eligible visitors with valid meeting rooms", eligibleVisitors.Count);
+            _logger.LogInformation("Found {Count} meetings with valid meeting rooms", validMeetings.Count);
 
             // 取得 BaseUrl 配置
             var baseUrl = _configuration["BaseUrl"];
@@ -95,52 +78,92 @@ public class RegistrationInvitationService : IRegistrationInvitationService
 
             var emailsSent = 0;
             var emailsFailed = 0;
+            var meetingsUpdated = 0;
 
-            foreach (var email in eligibleVisitors)
+            // 處理每個會議
+            foreach (var meeting in validMeetings)
             {
                 try
                 {
-                    // 檢查是否已經發送過（避免重複發送）
-                    var sentKey = $"register:invitation:sent:{email}:{tomorrow:yyyyMMdd}";
-                    var alreadySent = await _cacheService.GetAsync(sentKey);
-                    
-                    if (!string.IsNullOrEmpty(alreadySent))
+                    // 獲取該會議的所有受邀人
+                    var visitors = await _context.Visitors
+                        .Where(v => v.MeetingId == meeting.Id)
+                        .Select(v => v.VisitorEmail)
+                        .Distinct()
+                        .ToListAsync(cancellationToken);
+
+                    if (!visitors.Any())
                     {
-                        _logger.LogInformation("Registration invitation already sent to {Email} for {Date}. Skipping.", email, tomorrow.ToString("yyyy-MM-dd"));
+                        _logger.LogInformation("Meeting {MeetingId} has no visitors. Skipping.", meeting.Id);
                         continue;
                     }
 
-                    // 產生 token (UUID)
-                    var token = Guid.NewGuid().ToString();
+                    _logger.LogInformation("Processing meeting {MeetingId} with {VisitorCount} visitors", meeting.Id, visitors.Count);
 
-                    // 將 token 和 email 儲存到 Redis，有效期兩天
-                    var cacheKey = $"register:token:{token}";
-                    await _cacheService.SetAsync(cacheKey, email, TimeSpan.FromDays(2));
+                    var meetingEmailsSent = 0;
+                    var meetingEmailsFailed = 0;
 
-                    // 構建註冊 URL
-                    var registerUrl = $"{baseUrl}/register?token={token}";
+                    // 為每個受邀人發送邀請信
+                    foreach (var email in visitors)
+                    {
+                        try
+                        {
+                            // 產生 token (UUID)
+                            var token = Guid.NewGuid().ToString();
 
-                    // 發送註冊邀請信
-                    await _mailService.SendRegisterInvitationAsync(email, token, registerUrl);
+                            // 將 token 和 email 儲存到 Redis，有效期兩天
+                            var cacheKey = $"register:token:{token}";
+                            await _cacheService.SetAsync(cacheKey, email, TimeSpan.FromDays(2));
 
-                    // 標記為已發送（有效期到明天結束）
-                    var expiresAt = tomorrowEnd - DateTime.UtcNow;
-                    await _cacheService.SetAsync(sentKey, "1", expiresAt);
+                            // 構建註冊 URL
+                            var registerUrl = $"{baseUrl}/register?token={token}";
 
-                    emailsSent++;
-                    _logger.LogInformation("Registration invitation sent to {Email}", email);
+                            // 發送註冊邀請信
+                            await _mailService.SendRegisterInvitationAsync(email, token, registerUrl);
+
+                            meetingEmailsSent++;
+                            emailsSent++;
+                            _logger.LogInformation("Registration invitation sent to {Email} for meeting {MeetingId}", email, meeting.Id);
+                        }
+                        catch (Exception ex)
+                        {
+                            meetingEmailsFailed++;
+                            emailsFailed++;
+                            _logger.LogError(ex, "Error sending registration invitation to {Email} for meeting {MeetingId}", email, meeting.Id);
+                            // 繼續處理下一個受邀人
+                        }
+                    }
+
+                    // 如果至少有一封郵件發送成功，則標記會議為已通知
+                    if (meetingEmailsSent > 0)
+                    {
+                        meeting.Notified = true;
+                        meetingsUpdated++;
+                        _logger.LogInformation("Marked meeting {MeetingId} as notified. Sent: {Sent}, Failed: {Failed}", 
+                            meeting.Id, meetingEmailsSent, meetingEmailsFailed);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("No emails sent for meeting {MeetingId}. Not marking as notified.", meeting.Id);
+                    }
                 }
                 catch (Exception ex)
                 {
-                    emailsFailed++;
-                    _logger.LogError(ex, "Error sending registration invitation to {Email}", email);
-                    // 繼續處理下一個
+                    _logger.LogError(ex, "Error processing meeting {MeetingId}", meeting.Id);
+                    // 繼續處理下一個會議
                 }
+            }
+
+            // 批量保存所有變更
+            if (meetingsUpdated > 0)
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+                _logger.LogInformation("Updated {Count} meetings to notified=true", meetingsUpdated);
             }
 
             var invitationDuration = DateTime.UtcNow - invitationStartTime;
             _logger.LogInformation("--- Registration invitation emails completed in {Duration:mm\\:ss\\.fff} ---", invitationDuration);
-            _logger.LogInformation("Sent: {Sent}, Failed: {Failed}", emailsSent, emailsFailed);
+            _logger.LogInformation("Sent: {Sent}, Failed: {Failed}, Meetings Updated: {Updated}", emailsSent, emailsFailed, meetingsUpdated);
         }
         catch (Exception ex)
         {
