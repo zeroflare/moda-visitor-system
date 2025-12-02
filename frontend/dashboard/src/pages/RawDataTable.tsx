@@ -82,57 +82,55 @@ export function RawDataTable() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
+              <table className="w-full border-collapse min-w-[1000px]">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left p-4 font-medium">時間</th>
-                    <th className="text-left p-4 font-medium">類型</th>
-                    <th className="text-left p-4 font-medium">邀請者</th>
-                    <th className="text-left p-4 font-medium">邀請者單位</th>
-                    <th className="text-left p-4 font-medium">邀請者職稱</th>
-                    <th className="text-left p-4 font-medium">訪客姓名</th>
-                    <th className="text-left p-4 font-medium">訪客公司</th>
-                    <th className="text-left p-4 font-medium">訪客電話</th>
-                    <th className="text-left p-4 font-medium">會議時間</th>
-                    <th className="text-left p-4 font-medium">會議名稱</th>
-                    <th className="text-left p-4 font-medium">會議室</th>
+                    <th className="text-left p-2 sm:p-3 lg:p-4 font-medium text-xs sm:text-sm">時間</th>
+                    <th className="text-left p-2 sm:p-3 lg:p-4 font-medium text-xs sm:text-sm">類型</th>
+                    <th className="text-left p-2 sm:p-3 lg:p-4 font-medium text-xs sm:text-sm">訪客資訊</th>
+                    <th className="text-left p-2 sm:p-3 lg:p-4 font-medium text-xs sm:text-sm">會議資訊</th>
+                    <th className="text-left p-2 sm:p-3 lg:p-4 font-medium text-xs sm:text-sm">邀請者資訊</th>
                   </tr>
                 </thead>
                 <tbody>
                   {checkLogs.length === 0 ? (
                     <tr>
-                      <td colSpan={11} className="text-center p-8 text-muted-foreground">
+                      <td colSpan={5} className="text-center p-6 sm:p-8 text-muted-foreground text-sm">
                         尚無資料
                       </td>
                     </tr>
                   ) : (
                     paginatedLogs.map((log, index) => (
                       <tr key={`${log.timestamp}-${index}`} className="border-b hover:bg-muted/50">
-                        <td className="p-4 whitespace-nowrap">{formatDateTime(log.timestamp)}</td>
-                        <td className="p-4">
+                        <td className="p-2 sm:p-3 lg:p-4 whitespace-nowrap text-xs sm:text-sm">{formatDateTime(log.timestamp)}</td>
+                        <td className="p-2 sm:p-3 lg:p-4">
                           <Badge variant={log.type === '簽到' ? 'default' : 'secondary'}>
                             {log.type || '-'}
                           </Badge>
                         </td>
-                        <td className="p-4">
-                          <div>
-                            <div className="font-medium">{log.inviterName || '-'}</div>
-                            <div className="text-sm text-muted-foreground">{log.inviterEmail}</div>
+                        <td className="p-2 sm:p-3 lg:p-4">
+                          <div className="space-y-0.5 sm:space-y-1">
+                            <div className="font-medium text-xs sm:text-sm">{log.vistorName || '-'}</div>
+                            <div className="text-xs">{log.vistorDept || '-'}</div>
+                            <div className="text-xs text-muted-foreground truncate">{log.vistorEmail || '-'}</div>
+                            <div className="text-xs text-muted-foreground">{log.vistorPhone || '-'}</div>
                           </div>
                         </td>
-                        <td className="p-4">{log.inviterDept || '-'}</td>
-                        <td className="p-4">{log.inviterTitle || '-'}</td>
-                        <td className="p-4">
-                          <div>
-                            <div className="font-medium">{log.vistorName || '-'}</div>
-                            <div className="text-sm text-muted-foreground">{log.vistorEmail}</div>
+                        <td className="p-2 sm:p-3 lg:p-4">
+                          <div className="space-y-0.5 sm:space-y-1">
+                            <div className="font-medium text-xs sm:text-sm">{log.meetingName || '-'}</div>
+                            <div className="text-xs text-muted-foreground">{log.meetingRoom || '-'}</div>
+                            <div className="text-xs text-muted-foreground whitespace-nowrap">{log.meetingTime || '-'}</div>
                           </div>
                         </td>
-                        <td className="p-4">{log.vistorDept || '-'}</td>
-                        <td className="p-4">{log.vistorPhone || '-'}</td>
-                        <td className="p-4 whitespace-nowrap">{log.meetingTime || '-'}</td>
-                        <td className="p-4">{log.meetingName || '-'}</td>
-                        <td className="p-4">{log.meetingRoom || '-'}</td>
+                        <td className="p-2 sm:p-3 lg:p-4">
+                          <div className="space-y-0.5 sm:space-y-1">
+                            <div className="font-medium text-xs sm:text-sm">{log.inviterName || '-'}</div>
+                            <div className="text-xs">{log.inviterDept || '-'}</div>
+                            <div className="text-xs text-muted-foreground">{log.inviterTitle || '-'}</div>
+                            <div className="text-xs text-muted-foreground truncate">{log.inviterEmail || '-'}</div>
+                          </div>
+                        </td>
                       </tr>
                     ))
                   )}
