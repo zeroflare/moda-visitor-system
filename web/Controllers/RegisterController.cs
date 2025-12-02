@@ -119,6 +119,18 @@ public class RegisterController : ControllerBase
             // 呼叫 TWDIW 服務
             var result = await _twdiwService.SubmitRegistrationAsync(request);
 
+            // 將用戶註冊資訊保存到 Redis，使用 transactionId 作為 key（有效期 7 天）
+            var registrationInfo = new
+            {
+                Name = request.Name,
+                Email = request.Email,
+                Company = request.Company,
+                Phone = request.Phone
+            };
+            var registrationInfoKey = $"register:info:{result.TransactionId}";
+            var registrationInfoJson = System.Text.Json.JsonSerializer.Serialize(registrationInfo);
+            await _cacheService.SetAsync(registrationInfoKey, registrationInfoJson, TimeSpan.FromDays(7));
+
             // 註冊完成後，刪除 token（註銷 token）
             await _cacheService.DeleteAsync(cacheKey);
 
@@ -182,7 +194,24 @@ public class RegisterController : ControllerBase
             {
                 try
                 {
-                    await SendRegistrationCompletedNotificationAsync(transactionId, result);
+                    // 從 Redis 讀取用戶註冊資訊
+                    var registrationInfoKey = $"register:info:{transactionId}";
+                    var registrationInfoJson = await _cacheService.GetAsync(registrationInfoKey);
+                    
+                    if (!string.IsNullOrEmpty(registrationInfoJson))
+                    {
+                        var registrationInfo = System.Text.Json.JsonSerializer.Deserialize<RegistrationInfo>(registrationInfoJson);
+                        await SendRegistrationCompletedNotificationAsync(transactionId, registrationInfo);
+                        
+                        // 通知發送後，刪除保存的註冊資訊
+                        await _cacheService.DeleteAsync(registrationInfoKey);
+                    }
+                    else
+                    {
+                        // 如果找不到註冊資訊，仍然發送通知但不包含用戶資訊
+                        _logger.LogWarning("無法找到 transactionId {TransactionId} 的註冊資訊", transactionId);
+                        await SendRegistrationCompletedNotificationAsync(transactionId, null);
+                    }
                 }
                 catch (Exception notifyEx)
                 {
@@ -232,9 +261,14 @@ public class RegisterController : ControllerBase
     }
 
     /// <summary>
+    /// 註冊資訊模型
+    /// </summary>
+    private record RegistrationInfo(string Name, string Email, string Company, string Phone);
+
+    /// <summary>
     /// 發送註冊完成通知到 Google Chat
     /// </summary>
-    private async Task SendRegistrationCompletedNotificationAsync(string transactionId, object result)
+    private async Task SendRegistrationCompletedNotificationAsync(string transactionId, RegistrationInfo? registrationInfo)
     {
         try
         {
@@ -243,103 +277,30 @@ public class RegisterController : ControllerBase
             {
                 var registrationTime = DateTime.UtcNow.AddHours(8).ToString("yyyy-MM-dd HH:mm");
                 
-                // 從結果中提取用戶註冊資訊
-                string? name = null;
-                string? email = null;
-                string? company = null;
-                string? phone = null;
-
-                try
-                {
-                    System.Text.Json.JsonElement? dataElement = null;
-
-                    if (result is System.Text.Json.JsonElement jsonElement)
-                    {
-                        if (jsonElement.TryGetProperty("Data", out var dataProperty))
-                        {
-                            dataElement = dataProperty;
-                        }
-                    }
-                    else
-                    {
-                        // 使用反射獲取 Data 屬性
-                        var resultType = result.GetType();
-                        var dataProperty = resultType.GetProperty("Data");
-                        if (dataProperty != null)
-                        {
-                            var dataValue = dataProperty.GetValue(result);
-                            if (dataValue is System.Text.Json.JsonElement jsonData)
-                            {
-                                dataElement = jsonData;
-                            }
-                        }
-                    }
-
-                    if (dataElement.HasValue)
-                    {
-                        var data = dataElement.Value;
-                        
-                        // 嘗試從 claims 中提取資訊（類似 GetCheckinResultAsync 的方式）
-                        if (data.TryGetProperty("data", out var dataArray) && dataArray.ValueKind == System.Text.Json.JsonValueKind.Array && dataArray.GetArrayLength() > 0)
-                        {
-                            var firstItem = dataArray[0];
-                            if (firstItem.TryGetProperty("claims", out var claims))
-                            {
-                                foreach (var claim in claims.EnumerateArray())
-                                {
-                                    if (claim.TryGetProperty("ename", out var ename))
-                                    {
-                                        var enameValue = ename.GetString();
-                                        if (claim.TryGetProperty("value", out var value))
-                                        {
-                                            var valueString = value.GetString();
-                                            switch (enameValue)
-                                            {
-                                                case "name":
-                                                    name = valueString;
-                                                    break;
-                                                case "email":
-                                                    email = valueString;
-                                                    break;
-                                                case "company":
-                                                    company = valueString;
-                                                    break;
-                                                case "phone":
-                                                    phone = valueString;
-                                                    break;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "提取用戶註冊資訊失敗，將使用預設值");
-                }
-
                 // 構建通知訊息
                 var notificationMessage = $"✅ 訪客註冊完成通知\n\n" +
                                          $"交易 ID：{transactionId}\n" +
                                          $"完成時間：{registrationTime}";
 
-                if (!string.IsNullOrEmpty(name))
+                // 如果有註冊資訊，添加到通知中（來自 SubmitRegistration 輸入的資訊）
+                if (registrationInfo != null)
                 {
-                    notificationMessage += $"\n姓名：{name}";
-                }
-                if (!string.IsNullOrEmpty(email))
-                {
-                    notificationMessage += $"\n電子郵件：{email}";
-                }
-                if (!string.IsNullOrEmpty(company))
-                {
-                    notificationMessage += $"\n公司：{company}";
-                }
-                if (!string.IsNullOrEmpty(phone))
-                {
-                    notificationMessage += $"\n電話：{phone}";
+                    if (!string.IsNullOrEmpty(registrationInfo.Name))
+                    {
+                        notificationMessage += $"\n姓名：{registrationInfo.Name}";
+                    }
+                    if (!string.IsNullOrEmpty(registrationInfo.Email))
+                    {
+                        notificationMessage += $"\n電子郵件：{registrationInfo.Email}";
+                    }
+                    if (!string.IsNullOrEmpty(registrationInfo.Company))
+                    {
+                        notificationMessage += $"\n公司：{registrationInfo.Company}";
+                    }
+                    if (!string.IsNullOrEmpty(registrationInfo.Phone))
+                    {
+                        notificationMessage += $"\n電話：{registrationInfo.Phone}";
+                    }
                 }
 
                 await _googleChatService.SendNotificationAsync(adminWebhook.Webhook, notificationMessage);
