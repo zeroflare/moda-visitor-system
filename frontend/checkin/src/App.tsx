@@ -30,6 +30,8 @@ function App() {
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string>('')
   const [countdown, setCountdown] = useState<number>(300) // 5分鐘 = 300秒
+  const [showModal, setShowModal] = useState<boolean>(false)
+  const [modalMessage, setModalMessage] = useState<string>('')
   const pollingIntervalRef = useRef<number | null>(null)
   const countdownIntervalRef = useRef<number | null>(null)
 
@@ -132,12 +134,34 @@ function App() {
             clearInterval(pollingIntervalRef.current)
             pollingIntervalRef.current = null
           }
-        } else if (response.status === 400) {
-          // 還在等待驗證，繼續輪詢
-          const data = await response.json()
-          console.log('等待驗證:', data.message)
         } else {
-          throw new Error('檢查簽到狀態失敗')
+          // 解析錯誤訊息
+          const data = await response.json()
+          
+          // 檢查是否為 "今天沒有會議" 的情況（無論狀態碼）
+          if (data.message === '今天沒有會議') {
+            setModalMessage(data.message)
+            setShowModal(true)
+            // 停止輪詢
+            if (pollingIntervalRef.current) {
+              clearInterval(pollingIntervalRef.current)
+              pollingIntervalRef.current = null
+            }
+          } else if (response.status === 401) {
+            // 401 錯誤，顯示 Modal 並刷新頁面
+            setModalMessage(data.message || '驗證失敗')
+            setShowModal(true)
+            // 停止輪詢
+            if (pollingIntervalRef.current) {
+              clearInterval(pollingIntervalRef.current)
+              pollingIntervalRef.current = null
+            }
+          } else if (response.status === 400) {
+            // 還在等待驗證，繼續輪詢
+            console.log('等待驗證:', data.message)
+          } else {
+            throw new Error('檢查簽到狀態失敗')
+          }
         }
       } catch (err) {
         console.error('檢查簽到狀態錯誤:', err)
@@ -157,6 +181,11 @@ function App() {
     }
   }, [transactionId, checkinResult])
 
+  // 處理 Modal 確認後刷新頁面
+  const handleModalConfirm = () => {
+    window.location.reload()
+  }
+
   return (
     <div className="app-container">
       <h1>訪客簽到</h1>
@@ -166,6 +195,18 @@ function App() {
       {error && (
         <div className="error-message">
           <p>錯誤: {error}</p>
+        </div>
+      )}
+
+      {showModal && (
+        <div className="modal-overlay" onClick={handleModalConfirm}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2 className="modal-title">提示</h2>
+            <p className="modal-message">{modalMessage}</p>
+            <button className="modal-button" onClick={handleModalConfirm}>
+              確定
+            </button>
+          </div>
         </div>
       )}
 
