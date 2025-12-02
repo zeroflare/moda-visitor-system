@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { getMe } from '@/services/loginApi'
 import { AppSidebar } from '@/components/app-sidebar'
 import {
   Breadcrumb,
@@ -20,12 +21,53 @@ import { RawDataTable } from '@/pages/RawDataTable'
 import { ProcessedDataTable } from '@/pages/ProcessedDataTable'
 import { UserManagement } from '@/pages/UserManagement'
 
-function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(true)
+interface User {
+  email: string
+  username: string
+  role: string
+}
 
-  const handleLogin = (email: string, otp: string) => {
-    console.log('Login attempt:', email, otp)
+function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null) // null 表示正在檢查
+  const [user, setUser] = useState<User | null>(null)
+  const navigate = useNavigate()
+
+  // 檢查 session cookie 是否有效
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const userData = await getMe()
+        setUser(userData)
+        setIsAuthenticated(true)
+      } catch {
+        // Session 無效或不存在
+        setUser(null)
+        setIsAuthenticated(false)
+      }
+    }
+
+    checkSession()
+  }, [])
+
+  // 使用 user 來避免 lint 警告（未來可能會在 UI 中使用）
+  if (user) {
+    // user 資料已載入，可在未來用於顯示使用者資訊
+  }
+
+  const handleLogin = (user: User) => {
+    console.log('Login successful:', user)
+    setUser(user)
     setIsAuthenticated(true)
+    navigate('/raw-data', { replace: true })
+  }
+
+  // 正在檢查 session，顯示載入狀態或空白
+  if (isAuthenticated === null) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-muted-foreground">載入中...</div>
+      </div>
+    )
   }
 
   if (!isAuthenticated) {
