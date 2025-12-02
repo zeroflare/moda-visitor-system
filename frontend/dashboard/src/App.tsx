@@ -20,6 +20,8 @@ import { Login } from '@/pages/Login'
 import { RawDataTable } from '@/pages/RawDataTable'
 import { ProcessedDataTable } from '@/pages/ProcessedDataTable'
 import { UserManagement } from '@/pages/UserManagement'
+import { CounterManagement } from '@/pages/CounterManagement'
+import { MeetingRoomManagement } from '@/pages/MeetingRoomManagement'
 
 interface User {
   email: string
@@ -104,6 +106,18 @@ function DashboardLayout() {
         current: '人員管理',
       }
     }
+    if (location.pathname === '/counter-management') {
+      return {
+        parent: '系統配置',
+        current: '櫃檯管理',
+      }
+    }
+    if (location.pathname === '/meetingroom-management') {
+      return {
+        parent: '系統配置',
+        current: '會議室管理',
+      }
+    }
     return {
       parent: '',
       current: 'Dashboard',
@@ -142,6 +156,8 @@ function DashboardLayout() {
           <Route path="/raw-data" element={<RawDataTable />} />
           <Route path="/processed-data" element={<ProcessedDataTable />} />
           <Route path="/user-management" element={<UserManagement />} />
+          <Route path="/counter-management" element={<CounterManagement />} />
+          <Route path="/meetingroom-management" element={<MeetingRoomManagement />} />
         </Routes>
       </SidebarInset>
     </SidebarProvider>
