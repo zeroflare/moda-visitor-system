@@ -5,8 +5,13 @@ using StackExchange.Redis;
 using web.Data;
 using web.Middleware;
 using web.Services;
+using web.Services.Scheduled;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// 確保 Console 日志輸出已啟用（WebApplication.CreateBuilder 默認已包含 Console 提供程序）
+// 如果需要更詳細的日志，可以調整日志級別
+builder.Logging.AddConsole();
 
 // Add services to the container
 builder.Services.AddControllers();
@@ -52,6 +57,17 @@ builder.Services.AddScoped<IVisitorLogService, VisitorLogService>();
 
 // Add CheckLog Service
 builder.Services.AddScoped<ICheckLogService, CheckLogService>();
+
+// Add Employee Service
+builder.Services.AddScoped<IEmployeeService, EmployeeService>();
+
+// Add Google Services
+builder.Services.AddSingleton<IGoogleAuthService, GoogleAuthService>();
+builder.Services.AddScoped<IGooglePeopleService, GooglePeopleService>();
+builder.Services.AddScoped<IGoogleCalendarService, GoogleCalendarService>();
+
+// Add Infrastructure Services
+builder.Services.AddScoped<IRegistrationInvitationService, RegistrationInvitationService>();
 
 // Add Redis
 var redisConnectionString = builder.Configuration.GetConnectionString("Redis");

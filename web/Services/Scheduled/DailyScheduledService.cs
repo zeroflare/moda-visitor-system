@@ -2,7 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace web.Services;
+namespace web.Services.Scheduled;
 
 public class DailyScheduledService : BackgroundService, IDailyScheduledService
 {
@@ -123,10 +123,79 @@ public class DailyScheduledService : BackgroundService, IDailyScheduledService
 
         var notifyWebhookService = scope.ServiceProvider.GetRequiredService<INotifyWebhookService>();
         var googleChatService = scope.ServiceProvider.GetRequiredService<IGoogleChatService>();
+        var googlePeopleService = scope.ServiceProvider.GetService<IGooglePeopleService>();
+        var googleCalendarService = scope.ServiceProvider.GetService<IGoogleCalendarService>();
+        var registrationInvitationService = scope.ServiceProvider.GetService<IRegistrationInvitationService>();
 
         try
         {
-            // 取得 admin webhook
+            // 1. 從 Google People 取得聯絡人
+            if (googlePeopleService != null)
+            {
+                _logger.LogInformation("--- Starting Google People sync ---");
+                var peopleSyncStartTime = DateTime.UtcNow;
+                try
+                {
+                    await googlePeopleService.SyncContactsToDatabaseAsync(cancellationToken);
+                    var peopleSyncDuration = DateTime.UtcNow - peopleSyncStartTime;
+                    _logger.LogInformation("--- Google People sync completed in {Duration:mm\\:ss\\.fff} ---", peopleSyncDuration);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error during Google People sync");
+                    // 不中斷整個排程，繼續執行其他任務
+                }
+            }
+            else
+            {
+                _logger.LogWarning("Google People Service not available. Skipping contact sync.");
+            }
+
+            // 2. 從 Google 日曆取得會議
+            if (googleCalendarService != null)
+            {
+                _logger.LogInformation("--- Starting Google Calendar sync ---");
+                var calendarSyncStartTime = DateTime.UtcNow;
+                try
+                {
+                    await googleCalendarService.SyncEventsToDatabaseAsync(cancellationToken);
+                    var calendarSyncDuration = DateTime.UtcNow - calendarSyncStartTime;
+                    _logger.LogInformation("--- Google Calendar sync completed in {Duration:mm\\:ss\\.fff} ---", calendarSyncDuration);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error during Google Calendar sync");
+                    // 不中斷整個排程，繼續執行其他任務
+                }
+            }
+            else
+            {
+                _logger.LogWarning("Google Calendar Service not available. Skipping calendar sync.");
+            }
+
+            // 3. 排程寄送註冊信
+            if (registrationInvitationService != null)
+            {
+                _logger.LogInformation("--- Starting registration invitation emails ---");
+                var invitationStartTime = DateTime.UtcNow;
+                try
+                {
+                    await registrationInvitationService.SendInvitationsToTomorrowVisitorsAsync(cancellationToken);
+                    var invitationDuration = DateTime.UtcNow - invitationStartTime;
+                    _logger.LogInformation("--- Registration invitation emails completed in {Duration:mm\\:ss\\.fff} ---", invitationDuration);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error during registration invitation emails");
+                    // 不中斷整個排程，繼續執行其他任務
+                }
+            }
+            else
+            {
+                _logger.LogWarning("Registration Invitation Service not available. Skipping invitation emails.");
+            }
+
+            // 取得 admin webhook 並發送通知
             var adminWebhook = await notifyWebhookService.GetNotifyWebhookByDeptAndTypeAsync("admin", "googlechat");
             
             if (adminWebhook != null && !string.IsNullOrEmpty(adminWebhook.Webhook))

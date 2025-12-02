@@ -1,4 +1,4 @@
-namespace web.Services;
+namespace web.Services.Scheduled;
 
 public interface IDailyScheduledService
 {

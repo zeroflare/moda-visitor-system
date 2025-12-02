@@ -1,17 +1,6 @@
 namespace web.Models;
 
-public record SendOTPRequest(string Email);
-
 public record SendOTPResponse(string Message);
-
-public record SubmitRegistrationRequest(
-    string Name,
-    string Email,
-    string Phone,
-    string Company,
-    string Otp,
-    string Token
-);
 
 public record SubmitRegistrationResponse(
     string Message,

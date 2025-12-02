@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS visitors (
 
 -- 創建員工表
 CREATE TABLE IF NOT EXISTS employees (
-    id BIGINT PRIMARY KEY,
+    id VARCHAR(255) PRIMARY KEY,
     email VARCHAR(255) NOT NULL,
     name VARCHAR(200) NOT NULL,
     dept VARCHAR(200),

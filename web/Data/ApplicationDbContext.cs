@@ -85,7 +85,7 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<Employee>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.Id).IsRequired();
+            entity.Property(e => e.Id).HasMaxLength(255).IsRequired();
             entity.Property(e => e.Email).HasMaxLength(255).IsRequired();
             entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
             entity.Property(e => e.Dept).HasMaxLength(200);
