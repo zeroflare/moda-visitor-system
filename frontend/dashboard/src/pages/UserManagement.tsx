@@ -73,7 +73,9 @@ export function UserManagement() {
       setFormData({
         username: userData.username,
         email: userData.email,
-        role: userData.role,
+        role: (userData.role === 'admin' || userData.role === 'user' 
+          ? userData.role 
+          : 'user') as 'admin' | 'user',
       })
       setIsEditDialogOpen(true)
     } catch (err) {
