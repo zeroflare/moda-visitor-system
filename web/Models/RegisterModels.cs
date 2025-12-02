@@ -9,7 +9,8 @@ public record SubmitRegistrationRequest(
     string Email,
     string Phone,
     string Company,
-    string Otp
+    string Otp,
+    string Token
 );
 
 public record SubmitRegistrationResponse(

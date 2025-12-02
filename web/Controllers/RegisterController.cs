@@ -11,17 +11,23 @@ public class RegisterController : ControllerBase
     private readonly ICacheService _cacheService;
     private readonly IMailService _mailService;
     private readonly ITwdiwService _twdiwService;
+    private readonly INotifyWebhookService _notifyWebhookService;
+    private readonly IGoogleChatService _googleChatService;
     private readonly ILogger<RegisterController> _logger;
 
     public RegisterController(
         ICacheService cacheService,
         IMailService mailService,
         ITwdiwService twdiwService,
+        INotifyWebhookService notifyWebhookService,
+        IGoogleChatService googleChatService,
         ILogger<RegisterController> logger)
     {
         _cacheService = cacheService;
         _mailService = mailService;
         _twdiwService = twdiwService;
+        _notifyWebhookService = notifyWebhookService;
+        _googleChatService = googleChatService;
         _logger = logger;
     }
 
@@ -73,13 +79,28 @@ public class RegisterController : ControllerBase
             string.IsNullOrEmpty(request.Email) || 
             string.IsNullOrEmpty(request.Otp) || 
             string.IsNullOrEmpty(request.Phone) || 
-            string.IsNullOrEmpty(request.Company))
+            string.IsNullOrEmpty(request.Company) ||
+            string.IsNullOrEmpty(request.Token))
         {
-            return BadRequest(new { error = "缺少必要欄位 (name, email, otp, phone, company)" });
+            return BadRequest(new { error = "缺少必要欄位 (name, email, otp, phone, company, token)" });
         }
 
         try
         {
+            // 檢查 email 與 token 代表的 email 是否一致
+            var cacheKey = $"register:token:{request.Token}";
+            var tokenEmail = await _cacheService.GetAsync(cacheKey);
+            
+            if (string.IsNullOrEmpty(tokenEmail))
+            {
+                return BadRequest(new { error = "token 不存在或已過期" });
+            }
+
+            if (tokenEmail != request.Email)
+            {
+                return BadRequest(new { error = "email 與 token 不匹配" });
+            }
+
             // 檢查 OTP
             var storedOtp = await _cacheService.GetAsync($"otp:{request.Email}");
             if (string.IsNullOrEmpty(storedOtp))
@@ -118,12 +139,106 @@ public class RegisterController : ControllerBase
         try
         {
             var result = await _twdiwService.GetRegistrationResultAsync(transactionId);
+            
+            // 檢查是否註冊完成（根據返回的 Message 判斷）
+            try
+            {
+                if (result is System.Text.Json.JsonElement jsonElement)
+                {
+                    if (jsonElement.TryGetProperty("Message", out var messageElement))
+                    {
+                        var message = messageElement.GetString();
+                        if (message == "Registration completed")
+                        {
+                            // 發送 Google Chat 通知
+                            await SendRegistrationCompletedNotificationAsync(transactionId);
+                        }
+                    }
+                }
+                else
+                {
+                    // 使用反射檢查 Message 屬性
+                    var resultType = result.GetType();
+                    var messageProperty = resultType.GetProperty("Message");
+                    if (messageProperty != null)
+                    {
+                        var message = messageProperty.GetValue(result)?.ToString();
+                        if (message == "Registration completed")
+                        {
+                            // 發送 Google Chat 通知
+                            await SendRegistrationCompletedNotificationAsync(transactionId);
+                        }
+                    }
+                }
+            }
+            catch (Exception notifyEx)
+            {
+                _logger.LogError(notifyEx, "檢查註冊完成狀態或發送通知失敗");
+                // 不影響主要流程，繼續執行
+            }
+            
             return Ok(result);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "getRegistrationResult exception");
             return StatusCode(500, new { error = true, message = "發生錯誤" });
+        }
+    }
+
+    /// <summary>
+    /// 根據 token 取得註冊 email
+    /// </summary>
+    [HttpGet("info")]
+    public async Task<IActionResult> GetRegisterInfo([FromQuery] string token)
+    {
+        if (string.IsNullOrEmpty(token))
+        {
+            return BadRequest(new { error = "缺少 token 參數" });
+        }
+
+        try
+        {
+            // 從 Redis 取得 email
+            var cacheKey = $"register:token:{token}";
+            var email = await _cacheService.GetAsync(cacheKey);
+
+            if (string.IsNullOrEmpty(email))
+            {
+                return NotFound(new { error = "token 不存在或已過期" });
+            }
+
+            return Ok(new { email });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "取得註冊資訊錯誤");
+            return StatusCode(500, new { error = "伺服器錯誤" });
+        }
+    }
+
+    /// <summary>
+    /// 發送註冊完成通知到 Google Chat
+    /// </summary>
+    private async Task SendRegistrationCompletedNotificationAsync(string transactionId)
+    {
+        try
+        {
+            var adminWebhook = await _notifyWebhookService.GetNotifyWebhookByDeptAndTypeAsync("admin", "googlechat");
+            if (adminWebhook != null && !string.IsNullOrEmpty(adminWebhook.Webhook))
+            {
+                var registrationTime = DateTime.UtcNow.AddHours(8).ToString("yyyy-MM-dd HH:mm");
+                var notificationMessage = $"✅ 訪客註冊完成通知\n\n" +
+                                         $"交易 ID：{transactionId}\n" +
+                                         $"完成時間：{registrationTime}";
+
+                await _googleChatService.SendNotificationAsync(adminWebhook.Webhook, notificationMessage);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "發送註冊完成 Google Chat 通知失敗");
+            throw;
         }
     }
 }

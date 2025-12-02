@@ -119,10 +119,10 @@ GET /api/checkin/result?transactionId={uuid}
   "inviterName": "邀請者姓名",
   "inviterDept": "邀請者單位",
   "inviterTitle": "邀請者職稱",
-  "vistorEmail": "visitor@example.com",
-  "vistorName": "訪客姓名",
-  "vistorDept": "訪客單位",
-  "vistorPhone": "0912345678",
+  "visitorEmail": "visitor@example.com",
+  "visitorName": "訪客姓名",
+  "visitorDept": "訪客單位",
+  "visitorPhone": "0912345678",
   "meetingTime": "2024-01-01 10:00",
   "meetingRoom": "會議室 A"
 }
