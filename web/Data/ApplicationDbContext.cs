@@ -56,6 +56,7 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.StartAt).IsRequired().HasColumnName("start_at");
             entity.Property(e => e.EndAt).IsRequired().HasColumnName("end_at");
             entity.Property(e => e.MeetingroomId).HasMaxLength(255).HasColumnName("meetingroom_id");
+            entity.Property(e => e.Notified).IsRequired().HasColumnName("notified").HasDefaultValue(false);
             entity.ToTable("meetings");
             
             // 建立索引

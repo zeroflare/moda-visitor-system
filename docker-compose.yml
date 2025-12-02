@@ -42,6 +42,8 @@ services:
     environment:
       - ConnectionStrings__MySQL=Server=mysql;Database=${MYSQL_DATABASE};User=${MYSQL_USER};Password=${MYSQL_PASSWORD};
       - ConnectionStrings__Redis=redis:6379
+    volumes:
+      - ./web/Secrets:/app/Secrets:ro
     depends_on:
       mysql:
         condition: service_healthy
@@ -49,14 +51,6 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  console:
-    build:
-      context: ./console
-      dockerfile: Dockerfile
-    env_file:
-      - .env
-    restart: unless-stopped
-    # 不 scale，維持單一實例執行排程任務
 
 volumes:
   mysql_data:

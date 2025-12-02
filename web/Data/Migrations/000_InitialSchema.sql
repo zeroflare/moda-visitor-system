@@ -1,3 +1,6 @@
+-- Migration: Initial database schema
+-- Description: Create initial database structure with all tables and sample data
+
 -- 創建資料庫（如果不存在）
 CREATE DATABASE IF NOT EXISTS twdiw_visitor CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
