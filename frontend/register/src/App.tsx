@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import {
   Card,
   CardContent,
@@ -33,8 +33,64 @@ function App() {
     useState<RegistrationResult | null>(null)
   const [error, setError] = useState<string>('')
   const [qrcodeExpiry, setQrcodeExpiry] = useState<number>(0) // QRCode 有效期倒計時（秒）
+  const [email, setEmail] = useState<string>('')
+  const [loadingEmail, setLoadingEmail] = useState<boolean>(false)
   const pollingIntervalRef = useRef<number | null>(null)
   const qrcodeExpiryIntervalRef = useRef<number | null>(null)
+
+  // 從 URL 參數獲取 token
+  const token = useMemo(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    return urlParams.get('token') || ''
+  }, [])
+
+  // 從 token 取得 email
+  useEffect(() => {
+    if (!token) {
+      return
+    }
+
+    let cancelled = false
+
+    const fetchEmail = async () => {
+      setLoadingEmail(true)
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/Register/info?token=${encodeURIComponent(token)}`)
+        
+        if (cancelled) {
+          return
+        }
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data.email) {
+            setEmail(data.email)
+          } else {
+            setError('無法取得註冊資訊')
+          }
+        } else {
+          const errorData = await response.json()
+          setError(errorData.error || '無法取得註冊資訊')
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error('取得註冊資訊錯誤:', err)
+          setError('取得註冊資訊時發生錯誤')
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingEmail(false)
+        }
+      }
+    }
+
+    fetchEmail()
+
+    return () => {
+      cancelled = true
+    }
+  }, [token])
 
   // 處理註冊表單提交成功
   const handleRegistrationSubmit = (data: QRCodeResponse) => {
@@ -84,6 +140,12 @@ function App() {
         )
         if (response.ok) {
           const data: RegistrationResult = await response.json()
+          // 如果是 "Waiting for registration" 訊息，繼續輪詢
+          if (data.message === 'Waiting for registration') {
+            console.log('等待註冊:', data.message)
+            return
+          }
+          // 否則設置結果並停止輪詢
           setRegistrationResult(data)
           // 停止輪詢
           if (pollingIntervalRef.current) {
@@ -134,10 +196,25 @@ function App() {
         {!qrcodeImage && !registrationResult && (
           <>
             <RegistrationNotice />
-            <RegistrationForm
-              onSubmit={handleRegistrationSubmit}
-              onError={setError}
-            />
+            {loadingEmail ? (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-center py-8">
+                    <div className="text-center space-y-2">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                      <p className="text-sm text-muted-foreground">載入中...</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <RegistrationForm
+                onSubmit={handleRegistrationSubmit}
+                onError={setError}
+                initialEmail={email}
+                token={token}
+              />
+            )}
           </>
         )}
 

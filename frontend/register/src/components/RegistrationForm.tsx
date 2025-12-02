@@ -40,12 +40,19 @@ interface QRCodeResponse {
 interface RegistrationFormProps {
   onSubmit: (data: QRCodeResponse) => void
   onError?: (error: string) => void
+  initialEmail?: string
+  token?: string
 }
 
-export function RegistrationForm({ onSubmit, onError }: RegistrationFormProps) {
+export function RegistrationForm({ 
+  onSubmit, 
+  onError,
+  initialEmail = '',
+  token = ''
+}: RegistrationFormProps) {
   const [formData, setFormData] = useState<RegistrationForm>({
     name: '',
-    email: '',
+    email: initialEmail,
     phone: '',
     company: '',
     otp: '',
@@ -62,6 +69,13 @@ export function RegistrationForm({ onSubmit, onError }: RegistrationFormProps) {
   }>({})
   const cooldownIntervalRef = useRef<number | null>(null)
   const expiryIntervalRef = useRef<number | null>(null)
+
+  // 當 initialEmail 改變時更新表單 email
+  useEffect(() => {
+    if (initialEmail) {
+      setFormData(prev => ({ ...prev, email: initialEmail }))
+    }
+  }, [initialEmail])
 
   // Email 格式驗證
   const validateEmail = (email: string): boolean => {
@@ -198,18 +212,32 @@ export function RegistrationForm({ onSubmit, onError }: RegistrationFormProps) {
 
     // 調用真實 API
     try {
-      const response = await fetch(`${API_BASE_URL}/register/qrcode`, {
+      const requestBody: {
+        name: string
+        email: string
+        phone: string
+        company: string
+        otp: string
+        token?: string
+      } = {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        company: formData.company,
+        otp: formData.otp,
+      }
+
+      // 如果有 token，則添加到請求中
+      if (token) {
+        requestBody.token = token
+      }
+
+      const response = await fetch(`${API_BASE_URL}/Register/qrcode`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          company: formData.company,
-          otp: formData.otp,
-        }),
+        body: JSON.stringify(requestBody),
       })
 
       if (!response.ok) {
@@ -319,29 +347,10 @@ export function RegistrationForm({ onSubmit, onError }: RegistrationFormProps) {
                     type="email"
                     id="email"
                     value={formData.email}
-                    onChange={e => {
-                      const value = e.target.value
-                      setFormData({ ...formData, email: value })
-                      setOtpSent(false)
-                      setOtpExpiry(0)
-                      // 清除錯誤當用戶開始輸入時
-                      if (fieldErrors.email) {
-                        setFieldErrors({ ...fieldErrors, email: undefined })
-                      }
-                    }}
-                    onBlur={() => {
-                      if (formData.email && !validateEmail(formData.email)) {
-                        setFieldErrors({
-                          ...fieldErrors,
-                          email: '請輸入有效的電子信箱格式',
-                        })
-                      } else if (formData.email && validateEmail(formData.email)) {
-                        setFieldErrors({ ...fieldErrors, email: undefined })
-                      }
-                    }}
                     className="flex-1"
                     placeholder="example@email.com"
                     required
+                    disabled
                     aria-invalid={!!fieldErrors.email}
                   />
                   <Button
