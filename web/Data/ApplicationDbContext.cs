@@ -56,7 +56,6 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.StartAt).IsRequired().HasColumnName("start_at");
             entity.Property(e => e.EndAt).IsRequired().HasColumnName("end_at");
             entity.Property(e => e.MeetingroomId).HasMaxLength(255).HasColumnName("meetingroom_id");
-            entity.Property(e => e.Notified).IsRequired().HasColumnName("notified").HasDefaultValue(false);
             entity.ToTable("meetings");
             
             // 建立索引
@@ -76,11 +75,13 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.CheckoutAt).HasColumnName("checkout_at");
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
             entity.Property(e => e.MeetingId).HasMaxLength(255).IsRequired().HasColumnName("meeting_id");
+            entity.Property(e => e.Notified).IsRequired().HasColumnName("notified").HasDefaultValue(false);
             entity.ToTable("visitors");
             
             // 建立索引
             entity.HasIndex(e => e.MeetingId);
             entity.HasIndex(e => e.VisitorEmail);
+            entity.HasIndex(e => e.Notified);
         });
 
         modelBuilder.Entity<Employee>(entity =>

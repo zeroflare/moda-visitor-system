@@ -1,10 +1,10 @@
--- Migration: Add notified column to meetings table
+-- Migration: Add notified column to visitors table
 -- Date: 2024-01-XX
--- Description: Add a boolean column to track whether notification emails have been sent for meetings
+-- Description: Add a boolean column to track whether notification emails have been sent for visitors
 
-ALTER TABLE meetings 
+ALTER TABLE visitors 
 ADD COLUMN notified BOOLEAN NOT NULL DEFAULT FALSE;
 
 -- Add index for better query performance when filtering by notification status
-CREATE INDEX idx_meetings_notified ON meetings(notified);
+CREATE INDEX idx_visitors_notified ON visitors(notified);
 
