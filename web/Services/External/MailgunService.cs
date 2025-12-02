@@ -71,5 +71,33 @@ public class MailgunService : IMailService
             throw new HttpRequestException("寄信失敗，請稍後再試");
         }
     }
+
+    public async Task SendCheckinNotificationAsync(string inviterEmail, string visitorName, string visitorEmail, string meetingName, string meetingRoom, string checkinTime)
+    {
+        var apiKey = _configuration["Mailgun:ApiKey"];
+        var domain = _configuration["Mailgun:Domain"];
+        var url = $"https://api.mailgun.net/v3/{domain}/messages";
+
+        var content = new MultipartFormDataContent();
+        content.Add(new StringContent($"數位發展部訪客系統<noreply@{domain}>"), "from");
+        content.Add(new StringContent(inviterEmail), "to");
+        content.Add(new StringContent("訪客簽到通知"), "subject");
+        content.Add(new StringContent($"您好！\n\n有訪客已完成簽到：\n\n訪客姓名：{visitorName}\n訪客信箱：{visitorEmail}\n會議名稱：{meetingName}\n會議室：{meetingRoom}\n簽到時間：{checkinTime}"), "text");
+        content.Add(new StringContent($"<p>您好！</p><p>有訪客已完成簽到：</p><ul><li>訪客姓名：{visitorName}</li><li>訪客信箱：{visitorEmail}</li><li>會議名稱：{meetingName}</li><li>會議室：{meetingRoom}</li><li>簽到時間：{checkinTime}</li></ul>"), "html");
+
+        var request = new HttpRequestMessage(HttpMethod.Post, url);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Basic", 
+            Convert.ToBase64String(Encoding.ASCII.GetBytes($"api:{apiKey}")));
+        request.Content = content;
+
+        var response = await _httpClient.SendAsync(request);
+        
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorText = await response.Content.ReadAsStringAsync();
+            _logger.LogError("Mailgun error: {Error}", errorText);
+            throw new HttpRequestException("寄信失敗，請稍後再試");
+        }
+    }
 }
 

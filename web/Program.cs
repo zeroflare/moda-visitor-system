@@ -5,8 +5,13 @@ using StackExchange.Redis;
 using web.Data;
 using web.Middleware;
 using web.Services;
+using web.Services.Scheduled;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// 確保 Console 日志輸出已啟用（WebApplication.CreateBuilder 默認已包含 Console 提供程序）
+// 如果需要更詳細的日志，可以調整日志級別
+builder.Logging.AddConsole();
 
 // Add services to the container
 builder.Services.AddControllers();
@@ -53,6 +58,17 @@ builder.Services.AddScoped<IVisitorLogService, VisitorLogService>();
 // Add CheckLog Service
 builder.Services.AddScoped<ICheckLogService, CheckLogService>();
 
+// Add Employee Service
+builder.Services.AddScoped<IEmployeeService, EmployeeService>();
+
+// Add Google Services
+builder.Services.AddSingleton<IGoogleAuthService, GoogleAuthService>();
+builder.Services.AddScoped<IGooglePeopleService, GooglePeopleService>();
+builder.Services.AddScoped<IGoogleCalendarService, GoogleCalendarService>();
+
+// Add Infrastructure Services
+builder.Services.AddScoped<IRegistrationInvitationService, RegistrationInvitationService>();
+
 // Add Redis
 var redisConnectionString = builder.Configuration.GetConnectionString("Redis");
 if (!string.IsNullOrEmpty(redisConnectionString))
@@ -65,10 +81,17 @@ if (!string.IsNullOrEmpty(redisConnectionString))
 // Add HttpClient for external services
 builder.Services.AddHttpClient<ITwdiwService, TwdiwService>();
 builder.Services.AddHttpClient<IMailService, MailgunService>();
+builder.Services.AddHttpClient<IGoogleChatService, GoogleChatService>();
 
 // Add services
 builder.Services.AddScoped<ITwdiwService, TwdiwService>();
 builder.Services.AddScoped<IMailService, MailgunService>();
+builder.Services.AddScoped<IGoogleChatService, GoogleChatService>();
+
+// Add background services
+builder.Services.AddSingleton<DailyScheduledService>();
+builder.Services.AddSingleton<IDailyScheduledService>(sp => sp.GetRequiredService<DailyScheduledService>());
+builder.Services.AddHostedService(sp => sp.GetRequiredService<DailyScheduledService>());
 
 var app = builder.Build();
 

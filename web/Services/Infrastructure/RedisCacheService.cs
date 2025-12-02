@@ -47,5 +47,33 @@ public class RedisCacheService : ICacheService
         }
         return keys;
     }
+
+    public async Task<bool> TryAcquireLockAsync(string key, string value, TimeSpan expiration)
+    {
+        // 使用 SET NX EX 命令實現分布式鎖
+        // NX: 只在鍵不存在時設置
+        // EX: 設置過期時間（秒）
+        return await _database.StringSetAsync(key, value, expiration, When.NotExists);
+    }
+
+    public async Task<bool> ReleaseLockAsync(string key, string value)
+    {
+        // 使用 Lua 腳本確保原子性：只有當值匹配時才刪除
+        const string script = @"
+            if redis.call('get', KEYS[1]) == ARGV[1] then
+                return redis.call('del', KEYS[1])
+            else
+                return 0
+            end
+        ";
+        
+        var result = await _database.ScriptEvaluateAsync(
+            script,
+            new RedisKey[] { key },
+            new RedisValue[] { value }
+        );
+        
+        return result.Type == ResultType.Integer && (int)result == 1;
+    }
 }
 
