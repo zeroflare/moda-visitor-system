@@ -72,6 +72,11 @@ builder.Services.AddScoped<ITwdiwService, TwdiwService>();
 builder.Services.AddScoped<IMailService, MailgunService>();
 builder.Services.AddScoped<IGoogleChatService, GoogleChatService>();
 
+// Add background services
+builder.Services.AddSingleton<DailyScheduledService>();
+builder.Services.AddSingleton<IDailyScheduledService>(sp => sp.GetRequiredService<DailyScheduledService>());
+builder.Services.AddHostedService(sp => sp.GetRequiredService<DailyScheduledService>());
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
