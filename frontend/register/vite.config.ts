@@ -13,7 +13,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: path.resolve(__dirname, '../../backend/public/register'),
+    outDir: path.resolve(__dirname, '../../web/wwwroot/register'),
     emptyOutDir: true,
   },
 })

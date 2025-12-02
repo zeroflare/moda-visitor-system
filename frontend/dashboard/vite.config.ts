@@ -13,7 +13,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: path.resolve(__dirname, '../../backend/public/dashboard'),
+    outDir: path.resolve(__dirname, '../../web/wwwroot/dashboard'),
     emptyOutDir: true,
   },
 })

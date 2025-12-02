@@ -7,7 +7,7 @@ export default defineConfig({
   base: './',
   plugins: [react()],
   build: {
-    outDir: path.resolve(__dirname, '../../backend/public/checkin'),
+    outDir: path.resolve(__dirname, '../../web/wwwroot/checkin'),
     emptyOutDir: true,
   },
 })
