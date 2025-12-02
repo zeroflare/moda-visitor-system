@@ -82,11 +82,12 @@ public class TwdiwService : ITwdiwService
             InviterName: "邀請者姓名",
             InviterDept: "邀請者單位",
             InviterTitle: "邀請者職稱",
-            VistorEmail: email,
-            VistorName: name,
-            VistorDept: company,
-            VistorPhone: phone,
+            VisitorEmail: email,
+            VisitorName: name,
+            VisitorDept: company,
+            VisitorPhone: phone,
             MeetingTime: "2025-11-27 10:00:00",
+            MeetingName: "",
             MeetingRoom: "延平 201 會議室"
         );
     }

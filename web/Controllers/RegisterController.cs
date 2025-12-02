@@ -73,13 +73,28 @@ public class RegisterController : ControllerBase
             string.IsNullOrEmpty(request.Email) || 
             string.IsNullOrEmpty(request.Otp) || 
             string.IsNullOrEmpty(request.Phone) || 
-            string.IsNullOrEmpty(request.Company))
+            string.IsNullOrEmpty(request.Company) ||
+            string.IsNullOrEmpty(request.Token))
         {
-            return BadRequest(new { error = "缺少必要欄位 (name, email, otp, phone, company)" });
+            return BadRequest(new { error = "缺少必要欄位 (name, email, otp, phone, company, token)" });
         }
 
         try
         {
+            // 檢查 email 與 token 代表的 email 是否一致
+            var cacheKey = $"register:token:{request.Token}";
+            var tokenEmail = await _cacheService.GetAsync(cacheKey);
+            
+            if (string.IsNullOrEmpty(tokenEmail))
+            {
+                return BadRequest(new { error = "token 不存在或已過期" });
+            }
+
+            if (tokenEmail != request.Email)
+            {
+                return BadRequest(new { error = "email 與 token 不匹配" });
+            }
+
             // 檢查 OTP
             var storedOtp = await _cacheService.GetAsync($"otp:{request.Email}");
             if (string.IsNullOrEmpty(storedOtp))
@@ -124,6 +139,37 @@ public class RegisterController : ControllerBase
         {
             _logger.LogError(ex, "getRegistrationResult exception");
             return StatusCode(500, new { error = true, message = "發生錯誤" });
+        }
+    }
+
+    /// <summary>
+    /// 根據 token 取得註冊 email
+    /// </summary>
+    [HttpGet("info")]
+    public async Task<IActionResult> GetRegisterInfo([FromQuery] string token)
+    {
+        if (string.IsNullOrEmpty(token))
+        {
+            return BadRequest(new { error = "缺少 token 參數" });
+        }
+
+        try
+        {
+            // 從 Redis 取得 email
+            var cacheKey = $"register:token:{token}";
+            var email = await _cacheService.GetAsync(cacheKey);
+
+            if (string.IsNullOrEmpty(email))
+            {
+                return NotFound(new { error = "token 不存在或已過期" });
+            }
+
+            return Ok(new { email });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "取得註冊資訊錯誤");
+            return StatusCode(500, new { error = "伺服器錯誤" });
         }
     }
 }
