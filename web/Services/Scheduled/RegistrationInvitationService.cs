@@ -59,7 +59,6 @@ public class RegistrationInvitationService : IRegistrationInvitationService
                     (v, m) => new { Visitor = v, Meeting = m }
                 )
                 .Where(vm => 
-                    vm.Meeting.StartAt >= now && 
                     vm.Meeting.StartAt <= timeRangeEnd &&
                     !vm.Visitor.Notified &&
                     vm.Meeting.MeetingroomId != null &&
