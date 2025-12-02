@@ -51,6 +51,14 @@ const data = {
       title: "系統配置",
       items: [
         {
+          title: "櫃檯管理",
+          path: "/counter-management",
+        },
+        {
+          title: "會議室管理",
+          path: "/meetingroom-management",
+        },
+        {
           title: "參數設定",
           path: "#",
         },

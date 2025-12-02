@@ -110,29 +110,29 @@ export function RawDataTable() {
                       <tr key={`${log.timestamp}-${index}`} className="border-b hover:bg-muted/50">
                         <td className="p-4 whitespace-nowrap">{formatDateTime(log.timestamp)}</td>
                         <td className="p-4">
-                          <Badge variant={log.type === '簽到' ? 'success' : 'warning'}>
-                            {log.type}
+                          <Badge variant={log.type === '簽到' ? 'default' : 'secondary'}>
+                            {log.type || '-'}
                           </Badge>
                         </td>
                         <td className="p-4">
                           <div>
-                            <div className="font-medium">{log.inviterName}</div>
+                            <div className="font-medium">{log.inviterName || '-'}</div>
                             <div className="text-sm text-muted-foreground">{log.inviterEmail}</div>
                           </div>
                         </td>
-                        <td className="p-4">{log.inviterDept}</td>
-                        <td className="p-4">{log.inviterTitle}</td>
+                        <td className="p-4">{log.inviterDept || '-'}</td>
+                        <td className="p-4">{log.inviterTitle || '-'}</td>
                         <td className="p-4">
                           <div>
-                            <div className="font-medium">{log.visitorName}</div>
-                            <div className="text-sm text-muted-foreground">{log.visitorEmail}</div>
+                            <div className="font-medium">{log.vistorName || '-'}</div>
+                            <div className="text-sm text-muted-foreground">{log.vistorEmail}</div>
                           </div>
                         </td>
-                        <td className="p-4">{log.visitorDept}</td>
-                        <td className="p-4">{log.visitorPhone}</td>
-                        <td className="p-4 whitespace-nowrap">{log.meetingTime}</td>
-                        <td className="p-4">{log.meetingName}</td>
-                        <td className="p-4">{log.meetingRoom}</td>
+                        <td className="p-4">{log.vistorDept || '-'}</td>
+                        <td className="p-4">{log.vistorPhone || '-'}</td>
+                        <td className="p-4 whitespace-nowrap">{log.meetingTime || '-'}</td>
+                        <td className="p-4">{log.meetingName || '-'}</td>
+                        <td className="p-4">{log.meetingRoom || '-'}</td>
                       </tr>
                     ))
                   )}

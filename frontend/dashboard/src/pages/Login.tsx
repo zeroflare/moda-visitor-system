@@ -1,11 +1,12 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { sendOTP, verifyOTP, getMe, type User } from '@/services/loginApi'
 
 interface LoginProps {
-  onLogin: (email: string, otp: string) => void
+  onLogin: (user: User) => void
 }
 
 export function Login({ onLogin }: LoginProps) {
@@ -15,23 +16,32 @@ export function Login({ onLogin }: LoginProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [isSendingOtp, setIsSendingOtp] = useState(false)
   const [countdown, setCountdown] = useState(0)
+  const [error, setError] = useState<string | null>(null)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const handleSendOtp = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!email) return
+  // 清理計時器
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+      }
+    }
+  }, [])
 
-    setIsSendingOtp(true)
-    // 這裡可以新增實際的發送 OTP API 呼叫
-    await new Promise(resolve => setTimeout(resolve, 1000)) // 模擬 API 呼叫
-    setOtpSent(true)
-    setIsSendingOtp(false)
+  const startCountdown = () => {
+    // 清除舊的計時器
+    if (timerRef.current) {
+      clearInterval(timerRef.current)
+    }
     
-    // 設置倒數計時 60 秒
     setCountdown(60)
-    const timer = setInterval(() => {
+    timerRef.current = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
-          clearInterval(timer)
+          if (timerRef.current) {
+            clearInterval(timerRef.current)
+            timerRef.current = null
+          }
           return 0
         }
         return prev - 1
@@ -39,15 +49,42 @@ export function Login({ onLogin }: LoginProps) {
     }, 1000)
   }
 
+  const handleSendOtp = async (e?: React.FormEvent) => {
+    e?.preventDefault()
+    if (!email) return
+
+    setIsSendingOtp(true)
+    setError(null)
+    
+    try {
+      await sendOTP({ email })
+      setOtpSent(true)
+      startCountdown()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '發送 OTP 失敗，請稍後再試')
+    } finally {
+      setIsSendingOtp(false)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!otp) return
 
     setIsLoading(true)
-    // 這裡可以新增實際的 OTP 驗證邏輯
-    await new Promise(resolve => setTimeout(resolve, 500)) // 模擬 API 呼叫
-    onLogin(email, otp)
-    setIsLoading(false)
+    setError(null)
+    
+    try {
+      // 先驗證 OTP
+      await verifyOTP({ email, otp })
+      // 驗證成功後取得使用者資料
+      const user = await getMe()
+      onLogin(user)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'OTP 驗證失敗，請檢查驗證碼是否正確')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -61,6 +98,11 @@ export function Login({ onLogin }: LoginProps) {
           <CardDescription>數位發展部訪客系統</CardDescription>
         </CardHeader>
         <CardContent>
+          {error && (
+            <div className="mb-4 rounded-md bg-destructive/15 p-3 text-sm text-destructive">
+              {error}
+            </div>
+          )}
           {!otpSent ? (
             <form onSubmit={handleSendOtp} className="space-y-4">
               <div className="space-y-2">
@@ -70,7 +112,10 @@ export function Login({ onLogin }: LoginProps) {
                   type="email"
                   placeholder="name@example.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value)
+                    setError(null)
+                  }}
                   required
                   disabled={isSendingOtp}
                 />
@@ -98,7 +143,10 @@ export function Login({ onLogin }: LoginProps) {
                   type="text"
                   placeholder="請輸入 6 位數驗證碼"
                   value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  onChange={(e) => {
+                    setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))
+                    setError(null)
+                  }}
                   required
                   disabled={isLoading}
                   maxLength={6}
@@ -114,9 +162,14 @@ export function Login({ onLogin }: LoginProps) {
                   variant="outline"
                   className="flex-1"
                   onClick={() => {
+                    if (timerRef.current) {
+                      clearInterval(timerRef.current)
+                      timerRef.current = null
+                    }
                     setOtpSent(false)
                     setOtp('')
                     setCountdown(0)
+                    setError(null)
                   }}
                   disabled={isLoading}
                 >

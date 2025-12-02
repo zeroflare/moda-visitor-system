@@ -51,47 +51,66 @@ export function ProcessedDataTable() {
     loadData()
   }, [])
 
+  // 格式化會議時間（從 meetingStart 和 meetingEnd 組合）
+  const formatMeetingTime = (meetingStart: string | null, meetingEnd: string | null) => {
+    if (!meetingStart && !meetingEnd) return '-'
+    if (meetingStart && meetingEnd) {
+      // 如果兩個時間在同一天，只顯示一次日期
+      const startDate = new Date(meetingStart)
+      const endDate = new Date(meetingEnd)
+      if (startDate.toDateString() === endDate.toDateString()) {
+        return `${format(startDate, 'yyyy/MM/dd HH:mm')} - ${format(endDate, 'HH:mm')}`
+      }
+      return `${format(startDate, 'yyyy/MM/dd HH:mm')} - ${format(endDate, 'yyyy/MM/dd HH:mm')}`
+    }
+    return meetingStart || meetingEnd || '-'
+  }
+
   // 篩選邏輯
   const filteredLogs = useMemo(() => {
     return visitorLogs.filter(log => {
       // 訪客資訊篩選（姓名、公司、Email、電話）
       const visitorMatch = !filterVisitor || 
-        log.visitorName.toLowerCase().includes(filterVisitor.toLowerCase()) ||
-        log.visitorDept.toLowerCase().includes(filterVisitor.toLowerCase()) ||
-        log.visitorEmail.toLowerCase().includes(filterVisitor.toLowerCase()) ||
-        log.visitorPhone.includes(filterVisitor)
+        (log.vistorName?.toLowerCase().includes(filterVisitor.toLowerCase()) ?? false) ||
+        (log.vistorDept?.toLowerCase().includes(filterVisitor.toLowerCase()) ?? false) ||
+        (log.vistorEmail?.toLowerCase().includes(filterVisitor.toLowerCase()) ?? false) ||
+        (log.vistorPhone?.includes(filterVisitor) ?? false)
 
       // 會議資訊篩選（會議名稱、會議室）
       const meetingMatch = !filterMeeting ||
-        log.meetingName.toLowerCase().includes(filterMeeting.toLowerCase()) ||
-        log.meetingRoom.toLowerCase().includes(filterMeeting.toLowerCase())
+        (log.meetingName?.toLowerCase().includes(filterMeeting.toLowerCase()) ?? false) ||
+        (log.meetingRoom?.toLowerCase().includes(filterMeeting.toLowerCase()) ?? false)
 
       // 邀請者資訊篩選（姓名、單位、職稱、Email）
       const inviterMatch = !filterInviter ||
-        log.inviterName.toLowerCase().includes(filterInviter.toLowerCase()) ||
-        log.inviterDept.toLowerCase().includes(filterInviter.toLowerCase()) ||
-        log.inviterTitle.toLowerCase().includes(filterInviter.toLowerCase()) ||
-        log.inviterEmail.toLowerCase().includes(filterInviter.toLowerCase())
+        (log.inviterName?.toLowerCase().includes(filterInviter.toLowerCase()) ?? false) ||
+        (log.inviterDept?.toLowerCase().includes(filterInviter.toLowerCase()) ?? false) ||
+        (log.inviterTitle?.toLowerCase().includes(filterInviter.toLowerCase()) ?? false) ||
+        (log.inviterEmail?.toLowerCase().includes(filterInviter.toLowerCase()) ?? false)
 
       // 日期範圍篩選（根據簽到時間）
       let dateMatch = true
       if (dateRange?.from || dateRange?.to) {
-        const checkinDate = new Date(log.checkinTimestamp)
-        checkinDate.setHours(0, 0, 0, 0)
-        
-        if (dateRange.from) {
-          const startDate = new Date(dateRange.from)
-          startDate.setHours(0, 0, 0, 0)
-          if (checkinDate < startDate) {
-            dateMatch = false
+        if (!log.checkinTimestamp) {
+          dateMatch = false
+        } else {
+          const checkinDate = new Date(log.checkinTimestamp)
+          checkinDate.setHours(0, 0, 0, 0)
+          
+          if (dateRange.from) {
+            const startDate = new Date(dateRange.from)
+            startDate.setHours(0, 0, 0, 0)
+            if (checkinDate < startDate) {
+              dateMatch = false
+            }
           }
-        }
-        
-        if (dateRange.to && dateMatch) {
-          const endDate = new Date(dateRange.to)
-          endDate.setHours(23, 59, 59, 999)
-          if (checkinDate > endDate) {
-            dateMatch = false
+          
+          if (dateRange.to && dateMatch) {
+            const endDate = new Date(dateRange.to)
+            endDate.setHours(23, 59, 59, 999)
+            if (checkinDate > endDate) {
+              dateMatch = false
+            }
           }
         }
       }
@@ -136,7 +155,8 @@ export function ProcessedDataTable() {
   }
 
   // 計算停留時間
-  const calculateDuration = (checkin: string, checkout: string | null) => {
+  const calculateDuration = (checkin: string | null, checkout: string | null) => {
+    if (!checkin) return '-'
     if (!checkout) return '進行中'
     
     const checkinTime = new Date(checkin).getTime()
@@ -182,17 +202,17 @@ export function ProcessedDataTable() {
   // 準備匯出資料
   const prepareExportData = () => {
     return filteredLogs.map(log => ({
-      '訪客姓名': log.visitorName,
-      '訪客公司': log.visitorDept,
-      '訪客Email': log.visitorEmail,
-      '訪客電話': log.visitorPhone,
-      '會議名稱': log.meetingName,
-      '會議室': log.meetingRoom,
-      '會議時間': log.meetingTime,
-      '邀請者姓名': log.inviterName,
-      '邀請者單位': log.inviterDept,
-      '邀請者職稱': log.inviterTitle,
-      '邀請者Email': log.inviterEmail,
+      '訪客姓名': log.vistorName || '-',
+      '訪客公司': log.vistorDept || '-',
+      '訪客Email': log.vistorEmail || '-',
+      '訪客電話': log.vistorPhone || '-',
+      '會議名稱': log.meetingName || '-',
+      '會議室': log.meetingRoom || '-',
+      '會議時間': formatMeetingTime(log.meetingStart, log.meetingEnd),
+      '邀請者姓名': log.inviterName || '-',
+      '邀請者單位': log.inviterDept || '-',
+      '邀請者職稱': log.inviterTitle || '-',
+      '邀請者Email': log.inviterEmail || '-',
       '簽到時間': formatDateTime(log.checkinTimestamp),
       '簽退時間': formatDateTime(log.checkoutTimestamp),
       '停留時間': log.checkoutTimestamp 
@@ -436,28 +456,30 @@ export function ProcessedDataTable() {
                     </tr>
                   ) : (
                     paginatedLogs.map((log, index) => (
-                      <tr key={`${log.checkinTimestamp}-${index}`} className="border-b hover:bg-muted/50">
+                      <tr key={`${log.checkinTimestamp || index}-${index}`} className="border-b hover:bg-muted/50">
                         <td className="p-2 sm:p-3 lg:p-4">
                           <div className="space-y-0.5 sm:space-y-1">
-                            <div className="font-medium text-xs sm:text-sm">{log.visitorName}</div>
-                            <div className="text-xs">{log.visitorDept}</div>
-                            <div className="text-xs text-muted-foreground truncate">{log.visitorEmail}</div>
-                            <div className="text-xs text-muted-foreground">{log.visitorPhone}</div>
+                            <div className="font-medium text-xs sm:text-sm">{log.vistorName || '-'}</div>
+                            <div className="text-xs">{log.vistorDept || '-'}</div>
+                            <div className="text-xs text-muted-foreground truncate">{log.vistorEmail || '-'}</div>
+                            <div className="text-xs text-muted-foreground">{log.vistorPhone || '-'}</div>
                           </div>
                         </td>
                         <td className="p-2 sm:p-3 lg:p-4">
                           <div className="space-y-0.5 sm:space-y-1">
-                            <div className="font-medium text-xs sm:text-sm">{log.meetingName}</div>
-                            <div className="text-xs text-muted-foreground">{log.meetingRoom}</div>
-                            <div className="text-xs text-muted-foreground whitespace-nowrap">{log.meetingTime}</div>
+                            <div className="font-medium text-xs sm:text-sm">{log.meetingName || '-'}</div>
+                            <div className="text-xs text-muted-foreground">{log.meetingRoom || '-'}</div>
+                            <div className="text-xs text-muted-foreground whitespace-nowrap">
+                              {formatMeetingTime(log.meetingStart, log.meetingEnd)}
+                            </div>
                           </div>
                         </td>
                         <td className="p-2 sm:p-3 lg:p-4">
                           <div className="space-y-0.5 sm:space-y-1">
-                            <div className="font-medium text-xs sm:text-sm">{log.inviterName}</div>
-                            <div className="text-xs">{log.inviterDept}</div>
-                            <div className="text-xs text-muted-foreground">{log.inviterTitle}</div>
-                            <div className="text-xs text-muted-foreground truncate">{log.inviterEmail}</div>
+                            <div className="font-medium text-xs sm:text-sm">{log.inviterName || '-'}</div>
+                            <div className="text-xs">{log.inviterDept || '-'}</div>
+                            <div className="text-xs text-muted-foreground">{log.inviterTitle || '-'}</div>
+                            <div className="text-xs text-muted-foreground truncate">{log.inviterEmail || '-'}</div>
                           </div>
                         </td>
                         <td className="p-2 sm:p-3 lg:p-4 whitespace-nowrap text-xs sm:text-sm">{formatDateTime(log.checkinTimestamp)}</td>

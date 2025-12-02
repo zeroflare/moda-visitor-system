@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { getMe } from '@/services/loginApi'
 import { AppSidebar } from '@/components/app-sidebar'
 import {
   Breadcrumb,
@@ -19,13 +20,56 @@ import { Login } from '@/pages/Login'
 import { RawDataTable } from '@/pages/RawDataTable'
 import { ProcessedDataTable } from '@/pages/ProcessedDataTable'
 import { UserManagement } from '@/pages/UserManagement'
+import { CounterManagement } from '@/pages/CounterManagement'
+import { MeetingRoomManagement } from '@/pages/MeetingRoomManagement'
+
+interface User {
+  email: string
+  username: string
+  role: string
+}
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(true)
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null) // null 表示正在檢查
+  const [user, setUser] = useState<User | null>(null)
+  const navigate = useNavigate()
 
-  const handleLogin = (email: string, otp: string) => {
-    console.log('Login attempt:', email, otp)
+  // 檢查 session cookie 是否有效
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const userData = await getMe()
+        setUser(userData)
+        setIsAuthenticated(true)
+      } catch {
+        // Session 無效或不存在
+        setUser(null)
+        setIsAuthenticated(false)
+      }
+    }
+
+    checkSession()
+  }, [])
+
+  // 使用 user 來避免 lint 警告（未來可能會在 UI 中使用）
+  if (user) {
+    // user 資料已載入，可在未來用於顯示使用者資訊
+  }
+
+  const handleLogin = (user: User) => {
+    console.log('Login successful:', user)
+    setUser(user)
     setIsAuthenticated(true)
+    navigate('/raw-data', { replace: true })
+  }
+
+  // 正在檢查 session，顯示載入狀態或空白
+  if (isAuthenticated === null) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-muted-foreground">載入中...</div>
+      </div>
+    )
   }
 
   if (!isAuthenticated) {
@@ -60,6 +104,18 @@ function DashboardLayout() {
       return {
         parent: '帳號與安全',
         current: '人員管理',
+      }
+    }
+    if (location.pathname === '/counter-management') {
+      return {
+        parent: '系統配置',
+        current: '櫃檯管理',
+      }
+    }
+    if (location.pathname === '/meetingroom-management') {
+      return {
+        parent: '系統配置',
+        current: '會議室管理',
       }
     }
     return {
@@ -100,6 +156,8 @@ function DashboardLayout() {
           <Route path="/raw-data" element={<RawDataTable />} />
           <Route path="/processed-data" element={<ProcessedDataTable />} />
           <Route path="/user-management" element={<UserManagement />} />
+          <Route path="/counter-management" element={<CounterManagement />} />
+          <Route path="/meetingroom-management" element={<MeetingRoomManagement />} />
         </Routes>
       </SidebarInset>
     </SidebarProvider>

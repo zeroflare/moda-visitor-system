@@ -11,81 +11,90 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Plus, Pencil, Trash2, Loader2, AlertTriangle } from 'lucide-react'
 import {
-  getUsers,
-  createUser,
-  getUserByEmail,
-  updateUser,
-  deleteUser,
-  type User,
-} from '@/services/userApi'
+  getMeetingRooms,
+  createMeetingRoom,
+  getMeetingRoomById,
+  updateMeetingRoom,
+  deleteMeetingRoom,
+  type MeetingRoomResponse,
+} from '@/services/meetingRoomApi'
+import { getCounters, type Counter } from '@/services/counterApi'
 
-export function UserManagement() {
-  const [users, setUsers] = useState<User[]>([])
+export function MeetingRoomManagement() {
+  const [meetingRooms, setMeetingRooms] = useState<MeetingRoomResponse[]>([])
+  const [counters, setCounters] = useState<Counter[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string>('')
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [selectedMeetingRoom, setSelectedMeetingRoom] = useState<MeetingRoomResponse | null>(null)
   const [formData, setFormData] = useState({
-    username: '',
-    email: '',
-    role: 'user' as 'admin' | 'user',
+    name: '',
+    counterId: '',
   })
   const [formError, setFormError] = useState<string>('')
   const [submitting, setSubmitting] = useState(false)
 
-  // 載入使用者列表
-  const loadUsers = async () => {
+  // 載入櫃檯列表
+  const loadCounters = async () => {
+    try {
+      const data = await getCounters()
+      setCounters(data)
+    } catch (err) {
+      console.error('載入櫃檯列表失敗:', err)
+    }
+  }
+
+  // 載入會議室列表
+  const loadMeetingRooms = async () => {
     try {
       setLoading(true)
       setError('')
-      const data = await getUsers()
-      setUsers(data)
+      const data = await getMeetingRooms()
+      setMeetingRooms(data)
     } catch (err) {
-      setError(err instanceof Error ? err.message : '載入使用者列表失敗')
+      setError(err instanceof Error ? err.message : '載入會議室列表失敗')
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    loadUsers()
+    loadCounters()
+    loadMeetingRooms()
   }, [])
 
   // 開啟新增對話框
   const handleOpenCreateDialog = () => {
-    setFormData({ username: '', email: '', role: 'user' })
+    setFormData({ name: '', counterId: '' })
     setFormError('')
     setIsCreateDialogOpen(true)
   }
 
   // 開啟編輯對話框
-  const handleOpenEditDialog = async (user: User) => {
+  const handleOpenEditDialog = async (meetingRoom: MeetingRoomResponse) => {
     try {
+      if (!meetingRoom.id) return
       setFormError('')
-      const userData = await getUserByEmail(user.email)
-      setSelectedUser(userData)
+      const meetingRoomData = await getMeetingRoomById(meetingRoom.id)
+      setSelectedMeetingRoom(meetingRoomData)
       setFormData({
-        username: userData.username,
-        email: userData.email,
-        role: (userData.role === 'admin' || userData.role === 'user' 
-          ? userData.role 
-          : 'user') as 'admin' | 'user',
+        name: meetingRoomData.name || '',
+        counterId: meetingRoomData.counterId || '',
       })
       setIsEditDialogOpen(true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : '載入使用者資料失敗')
+      setError(err instanceof Error ? err.message : '載入會議室資料失敗')
     }
   }
 
   // 開啟刪除對話框
-  const handleOpenDeleteDialog = (user: User) => {
-    setSelectedUser(user)
+  const handleOpenDeleteDialog = (meetingRoom: MeetingRoomResponse) => {
+    setSelectedMeetingRoom(meetingRoom)
     setIsDeleteDialogOpen(true)
   }
 
@@ -96,16 +105,19 @@ export function UserManagement() {
     setSubmitting(true)
 
     try {
-      if (!formData.username.trim() || !formData.email.trim()) {
+      if (!formData.name.trim() || !formData.counterId) {
         setFormError('請填寫所有欄位')
         return
       }
 
-      await createUser(formData)
+      await createMeetingRoom({
+        name: formData.name.trim(),
+        counterId: formData.counterId,
+      })
       setIsCreateDialogOpen(false)
-      await loadUsers()
+      await loadMeetingRooms()
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : '新增使用者失敗')
+      setFormError(err instanceof Error ? err.message : '新增會議室失敗')
     } finally {
       setSubmitting(false)
     }
@@ -114,27 +126,26 @@ export function UserManagement() {
   // 提交編輯表單
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedUser) return
+    if (!selectedMeetingRoom || !selectedMeetingRoom.id) return
 
     setFormError('')
     setSubmitting(true)
 
     try {
-      if (!formData.username.trim() || !formData.email.trim()) {
+      if (!formData.name.trim() || !formData.counterId) {
         setFormError('請填寫所有欄位')
         return
       }
 
-      await updateUser(selectedUser.email, {
-        username: formData.username,
-        email: formData.email,
-        role: formData.role,
+      await updateMeetingRoom(selectedMeetingRoom.id, {
+        name: formData.name.trim(),
+        counterId: formData.counterId,
       })
       setIsEditDialogOpen(false)
-      setSelectedUser(null)
-      await loadUsers()
+      setSelectedMeetingRoom(null)
+      await loadMeetingRooms()
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : '更新使用者失敗')
+      setFormError(err instanceof Error ? err.message : '更新會議室失敗')
     } finally {
       setSubmitting(false)
     }
@@ -142,15 +153,15 @@ export function UserManagement() {
 
   // 確認刪除
   const handleDeleteConfirm = async () => {
-    if (!selectedUser) return
+    if (!selectedMeetingRoom || !selectedMeetingRoom.id) return
 
     try {
-      await deleteUser(selectedUser.email)
+      await deleteMeetingRoom(selectedMeetingRoom.id)
       setIsDeleteDialogOpen(false)
-      setSelectedUser(null)
-      await loadUsers()
+      setSelectedMeetingRoom(null)
+      await loadMeetingRooms()
     } catch (err) {
-      setError(err instanceof Error ? err.message : '刪除使用者失敗')
+      setError(err instanceof Error ? err.message : '刪除會議室失敗')
       setIsDeleteDialogOpen(false)
     }
   }
@@ -161,12 +172,12 @@ export function UserManagement() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>人員管理</CardTitle>
-              <CardDescription>管理系統使用者帳號</CardDescription>
+              <CardTitle>會議室管理</CardTitle>
+              <CardDescription>管理系統會議室資訊</CardDescription>
             </div>
             <Button onClick={handleOpenCreateDialog}>
               <Plus className="h-4 w-4 mr-2" />
-              新增使用者
+              新增會議室
             </Button>
           </div>
         </CardHeader>
@@ -187,42 +198,45 @@ export function UserManagement() {
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left p-4 font-medium">使用者名稱</th>
-                    <th className="text-left p-4 font-medium">電子郵件</th>
-                    <th className="text-left p-4 font-medium">角色</th>
+                    <th className="text-left p-4 font-medium">會議室 ID</th>
+                    <th className="text-left p-4 font-medium">會議室名稱</th>
+                    <th className="text-left p-4 font-medium">櫃檯 ID</th>
+                    <th className="text-left p-4 font-medium">櫃檯名稱</th>
                     <th className="text-right p-4 font-medium">操作</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {users.length === 0 ? (
+                  {meetingRooms.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="text-center p-8 text-muted-foreground">
-                        尚無使用者資料
+                      <td colSpan={5} className="text-center p-8 text-muted-foreground">
+                        尚無會議室資料
                       </td>
                     </tr>
                   ) : (
-                    users.map((user) => (
-                      <tr key={user.email} className="border-b hover:bg-muted/50">
-                        <td className="p-4">{user.username}</td>
-                        <td className="p-4">{user.email}</td>
-                        <td className="p-4">
-                          <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                            {user.role === 'admin' ? '管理員' : '使用者'}
-                          </Badge>
-                        </td>
+                    meetingRooms.map((meetingRoom) => (
+                      <tr
+                        key={meetingRoom.id || Math.random()}
+                        className="border-b hover:bg-muted/50"
+                      >
+                        <td className="p-4 font-mono text-sm">{meetingRoom.id || '-'}</td>
+                        <td className="p-4">{meetingRoom.name || '-'}</td>
+                        <td className="p-4 font-mono text-sm">{meetingRoom.counterId || '-'}</td>
+                        <td className="p-4">{meetingRoom.counterName || '-'}</td>
                         <td className="p-4">
                           <div className="flex items-center justify-end gap-2">
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleOpenEditDialog(user)}
+                              onClick={() => handleOpenEditDialog(meetingRoom)}
+                              disabled={!meetingRoom.id}
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="destructive"
                               size="sm"
-                              onClick={() => handleOpenDeleteDialog(user)}
+                              onClick={() => handleOpenDeleteDialog(meetingRoom)}
+                              disabled={!meetingRoom.id}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -238,12 +252,12 @@ export function UserManagement() {
         </CardContent>
       </Card>
 
-      {/* 新增使用者對話框 */}
+      {/* 新增會議室對話框 */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>新增使用者</DialogTitle>
-            <DialogDescription>請填寫使用者資訊以新增帳號</DialogDescription>
+            <DialogTitle>新增會議室</DialogTitle>
+            <DialogDescription>請填寫會議室資訊以新增會議室</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreateSubmit}>
             <div className="space-y-4 py-4">
@@ -254,39 +268,30 @@ export function UserManagement() {
                 </Alert>
               )}
               <div className="space-y-2">
-                <Label htmlFor="create-username">使用者名稱 *</Label>
+                <Label htmlFor="create-name">會議室名稱 *</Label>
                 <Input
-                  id="create-username"
-                  value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  placeholder="請輸入使用者名稱"
+                  id="create-name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="請輸入會議室名稱"
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="create-email">電子郵件 *</Label>
-                <Input
-                  id="create-email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="example@email.com"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="create-role">角色 *</Label>
+                <Label htmlFor="create-counter">櫃檯 *</Label>
                 <select
-                  id="create-role"
-                  value={formData.role}
-                  onChange={(e) =>
-                    setFormData({ ...formData, role: e.target.value as 'admin' | 'user' })
-                  }
+                  id="create-counter"
+                  value={formData.counterId}
+                  onChange={(e) => setFormData({ ...formData, counterId: e.target.value })}
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                   required
                 >
-                  <option value="user">使用者</option>
-                  <option value="admin">管理員</option>
+                  <option value="">請選擇櫃檯</option>
+                  {counters.map((counter) => (
+                    <option key={counter.id} value={counter.id || ''}>
+                      {counter.name || counter.id}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -314,12 +319,12 @@ export function UserManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* 編輯使用者對話框 */}
+      {/* 編輯會議室對話框 */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>編輯使用者</DialogTitle>
-            <DialogDescription>修改使用者資訊</DialogDescription>
+            <DialogTitle>編輯會議室</DialogTitle>
+            <DialogDescription>修改會議室資訊</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleEditSubmit}>
             <div className="space-y-4 py-4">
@@ -330,39 +335,30 @@ export function UserManagement() {
                 </Alert>
               )}
               <div className="space-y-2">
-                <Label htmlFor="edit-username">使用者名稱 *</Label>
+                <Label htmlFor="edit-name">會議室名稱 *</Label>
                 <Input
-                  id="edit-username"
-                  value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  placeholder="請輸入使用者名稱"
+                  id="edit-name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="請輸入會議室名稱"
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-email">電子郵件 *</Label>
-                <Input
-                  id="edit-email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="example@email.com"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-role">角色 *</Label>
+                <Label htmlFor="edit-counter">櫃檯 *</Label>
                 <select
-                  id="edit-role"
-                  value={formData.role}
-                  onChange={(e) =>
-                    setFormData({ ...formData, role: e.target.value as 'admin' | 'user' })
-                  }
+                  id="edit-counter"
+                  value={formData.counterId}
+                  onChange={(e) => setFormData({ ...formData, counterId: e.target.value })}
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                   required
                 >
-                  <option value="user">使用者</option>
-                  <option value="admin">管理員</option>
+                  <option value="">請選擇櫃檯</option>
+                  {counters.map((counter) => (
+                    <option key={counter.id} value={counter.id || ''}>
+                      {counter.name || counter.id}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -396,7 +392,7 @@ export function UserManagement() {
           <DialogHeader>
             <DialogTitle>確認刪除</DialogTitle>
             <DialogDescription>
-              您確定要刪除使用者「{selectedUser?.username}」({selectedUser?.email}) 嗎？
+              您確定要刪除會議室「{selectedMeetingRoom?.name}」嗎？
               <br />
               此操作無法復原。
             </DialogDescription>
@@ -418,3 +414,4 @@ export function UserManagement() {
     </div>
   )
 }
+

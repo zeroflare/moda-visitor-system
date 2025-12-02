@@ -11,81 +11,75 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Plus, Pencil, Trash2, Loader2, AlertTriangle } from 'lucide-react'
 import {
-  getUsers,
-  createUser,
-  getUserByEmail,
-  updateUser,
-  deleteUser,
-  type User,
-} from '@/services/userApi'
+  getCounters,
+  createCounter,
+  getCounterById,
+  updateCounter,
+  deleteCounter,
+  type Counter,
+} from '@/services/counterApi'
 
-export function UserManagement() {
-  const [users, setUsers] = useState<User[]>([])
+export function CounterManagement() {
+  const [counters, setCounters] = useState<Counter[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string>('')
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [selectedCounter, setSelectedCounter] = useState<Counter | null>(null)
   const [formData, setFormData] = useState({
-    username: '',
-    email: '',
-    role: 'user' as 'admin' | 'user',
+    name: '',
   })
   const [formError, setFormError] = useState<string>('')
   const [submitting, setSubmitting] = useState(false)
 
-  // 載入使用者列表
-  const loadUsers = async () => {
+  // 載入櫃檯列表
+  const loadCounters = async () => {
     try {
       setLoading(true)
       setError('')
-      const data = await getUsers()
-      setUsers(data)
+      const data = await getCounters()
+      setCounters(data)
     } catch (err) {
-      setError(err instanceof Error ? err.message : '載入使用者列表失敗')
+      setError(err instanceof Error ? err.message : '載入櫃檯列表失敗')
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    loadUsers()
+    loadCounters()
   }, [])
 
   // 開啟新增對話框
   const handleOpenCreateDialog = () => {
-    setFormData({ username: '', email: '', role: 'user' })
+    setFormData({ name: '' })
     setFormError('')
     setIsCreateDialogOpen(true)
   }
 
   // 開啟編輯對話框
-  const handleOpenEditDialog = async (user: User) => {
+  const handleOpenEditDialog = async (counter: Counter) => {
     try {
+      if (!counter.id) return
       setFormError('')
-      const userData = await getUserByEmail(user.email)
-      setSelectedUser(userData)
+      const counterData = await getCounterById(counter.id)
+      setSelectedCounter(counterData)
       setFormData({
-        username: userData.username,
-        email: userData.email,
-        role: (userData.role === 'admin' || userData.role === 'user' 
-          ? userData.role 
-          : 'user') as 'admin' | 'user',
+        name: counterData.name || '',
       })
       setIsEditDialogOpen(true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : '載入使用者資料失敗')
+      setError(err instanceof Error ? err.message : '載入櫃檯資料失敗')
     }
   }
 
   // 開啟刪除對話框
-  const handleOpenDeleteDialog = (user: User) => {
-    setSelectedUser(user)
+  const handleOpenDeleteDialog = (counter: Counter) => {
+    setSelectedCounter(counter)
     setIsDeleteDialogOpen(true)
   }
 
@@ -96,16 +90,16 @@ export function UserManagement() {
     setSubmitting(true)
 
     try {
-      if (!formData.username.trim() || !formData.email.trim()) {
-        setFormError('請填寫所有欄位')
+      if (!formData.name.trim()) {
+        setFormError('請填寫櫃檯名稱')
         return
       }
 
-      await createUser(formData)
+      await createCounter({ name: formData.name.trim() })
       setIsCreateDialogOpen(false)
-      await loadUsers()
+      await loadCounters()
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : '新增使用者失敗')
+      setFormError(err instanceof Error ? err.message : '新增櫃檯失敗')
     } finally {
       setSubmitting(false)
     }
@@ -114,27 +108,25 @@ export function UserManagement() {
   // 提交編輯表單
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedUser) return
+    if (!selectedCounter || !selectedCounter.id) return
 
     setFormError('')
     setSubmitting(true)
 
     try {
-      if (!formData.username.trim() || !formData.email.trim()) {
-        setFormError('請填寫所有欄位')
+      if (!formData.name.trim()) {
+        setFormError('請填寫櫃檯名稱')
         return
       }
 
-      await updateUser(selectedUser.email, {
-        username: formData.username,
-        email: formData.email,
-        role: formData.role,
+      await updateCounter(selectedCounter.id, {
+        name: formData.name.trim(),
       })
       setIsEditDialogOpen(false)
-      setSelectedUser(null)
-      await loadUsers()
+      setSelectedCounter(null)
+      await loadCounters()
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : '更新使用者失敗')
+      setFormError(err instanceof Error ? err.message : '更新櫃檯失敗')
     } finally {
       setSubmitting(false)
     }
@@ -142,15 +134,15 @@ export function UserManagement() {
 
   // 確認刪除
   const handleDeleteConfirm = async () => {
-    if (!selectedUser) return
+    if (!selectedCounter || !selectedCounter.id) return
 
     try {
-      await deleteUser(selectedUser.email)
+      await deleteCounter(selectedCounter.id)
       setIsDeleteDialogOpen(false)
-      setSelectedUser(null)
-      await loadUsers()
+      setSelectedCounter(null)
+      await loadCounters()
     } catch (err) {
-      setError(err instanceof Error ? err.message : '刪除使用者失敗')
+      setError(err instanceof Error ? err.message : '刪除櫃檯失敗')
       setIsDeleteDialogOpen(false)
     }
   }
@@ -161,12 +153,12 @@ export function UserManagement() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>人員管理</CardTitle>
-              <CardDescription>管理系統使用者帳號</CardDescription>
+              <CardTitle>櫃檯管理</CardTitle>
+              <CardDescription>管理系統櫃檯資訊</CardDescription>
             </div>
             <Button onClick={handleOpenCreateDialog}>
               <Plus className="h-4 w-4 mr-2" />
-              新增使用者
+              新增櫃檯
             </Button>
           </div>
         </CardHeader>
@@ -187,42 +179,38 @@ export function UserManagement() {
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left p-4 font-medium">使用者名稱</th>
-                    <th className="text-left p-4 font-medium">電子郵件</th>
-                    <th className="text-left p-4 font-medium">角色</th>
+                    <th className="text-left p-4 font-medium">櫃檯 ID</th>
+                    <th className="text-left p-4 font-medium">櫃檯名稱</th>
                     <th className="text-right p-4 font-medium">操作</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {users.length === 0 ? (
+                  {counters.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="text-center p-8 text-muted-foreground">
-                        尚無使用者資料
+                      <td colSpan={3} className="text-center p-8 text-muted-foreground">
+                        尚無櫃檯資料
                       </td>
                     </tr>
                   ) : (
-                    users.map((user) => (
-                      <tr key={user.email} className="border-b hover:bg-muted/50">
-                        <td className="p-4">{user.username}</td>
-                        <td className="p-4">{user.email}</td>
-                        <td className="p-4">
-                          <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                            {user.role === 'admin' ? '管理員' : '使用者'}
-                          </Badge>
-                        </td>
+                    counters.map((counter) => (
+                      <tr key={counter.id || Math.random()} className="border-b hover:bg-muted/50">
+                        <td className="p-4 font-mono text-sm">{counter.id || '-'}</td>
+                        <td className="p-4">{counter.name || '-'}</td>
                         <td className="p-4">
                           <div className="flex items-center justify-end gap-2">
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleOpenEditDialog(user)}
+                              onClick={() => handleOpenEditDialog(counter)}
+                              disabled={!counter.id}
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="destructive"
                               size="sm"
-                              onClick={() => handleOpenDeleteDialog(user)}
+                              onClick={() => handleOpenDeleteDialog(counter)}
+                              disabled={!counter.id}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -238,12 +226,12 @@ export function UserManagement() {
         </CardContent>
       </Card>
 
-      {/* 新增使用者對話框 */}
+      {/* 新增櫃檯對話框 */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>新增使用者</DialogTitle>
-            <DialogDescription>請填寫使用者資訊以新增帳號</DialogDescription>
+            <DialogTitle>新增櫃檯</DialogTitle>
+            <DialogDescription>請填寫櫃檯資訊以新增櫃檯</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreateSubmit}>
             <div className="space-y-4 py-4">
@@ -254,40 +242,14 @@ export function UserManagement() {
                 </Alert>
               )}
               <div className="space-y-2">
-                <Label htmlFor="create-username">使用者名稱 *</Label>
+                <Label htmlFor="create-name">櫃檯名稱 *</Label>
                 <Input
-                  id="create-username"
-                  value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  placeholder="請輸入使用者名稱"
+                  id="create-name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="請輸入櫃檯名稱"
                   required
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="create-email">電子郵件 *</Label>
-                <Input
-                  id="create-email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="example@email.com"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="create-role">角色 *</Label>
-                <select
-                  id="create-role"
-                  value={formData.role}
-                  onChange={(e) =>
-                    setFormData({ ...formData, role: e.target.value as 'admin' | 'user' })
-                  }
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                  required
-                >
-                  <option value="user">使用者</option>
-                  <option value="admin">管理員</option>
-                </select>
               </div>
             </div>
             <DialogFooter>
@@ -314,12 +276,12 @@ export function UserManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* 編輯使用者對話框 */}
+      {/* 編輯櫃檯對話框 */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>編輯使用者</DialogTitle>
-            <DialogDescription>修改使用者資訊</DialogDescription>
+            <DialogTitle>編輯櫃檯</DialogTitle>
+            <DialogDescription>修改櫃檯資訊</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleEditSubmit}>
             <div className="space-y-4 py-4">
@@ -330,40 +292,14 @@ export function UserManagement() {
                 </Alert>
               )}
               <div className="space-y-2">
-                <Label htmlFor="edit-username">使用者名稱 *</Label>
+                <Label htmlFor="edit-name">櫃檯名稱 *</Label>
                 <Input
-                  id="edit-username"
-                  value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  placeholder="請輸入使用者名稱"
+                  id="edit-name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="請輸入櫃檯名稱"
                   required
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-email">電子郵件 *</Label>
-                <Input
-                  id="edit-email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="example@email.com"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-role">角色 *</Label>
-                <select
-                  id="edit-role"
-                  value={formData.role}
-                  onChange={(e) =>
-                    setFormData({ ...formData, role: e.target.value as 'admin' | 'user' })
-                  }
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                  required
-                >
-                  <option value="user">使用者</option>
-                  <option value="admin">管理員</option>
-                </select>
               </div>
             </div>
             <DialogFooter>
@@ -396,7 +332,7 @@ export function UserManagement() {
           <DialogHeader>
             <DialogTitle>確認刪除</DialogTitle>
             <DialogDescription>
-              您確定要刪除使用者「{selectedUser?.username}」({selectedUser?.email}) 嗎？
+              您確定要刪除櫃檯「{selectedCounter?.name}」嗎？
               <br />
               此操作無法復原。
             </DialogDescription>
@@ -418,3 +354,4 @@ export function UserManagement() {
     </div>
   )
 }
+

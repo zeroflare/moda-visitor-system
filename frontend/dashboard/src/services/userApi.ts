@@ -1,132 +1,124 @@
-// 假資料模擬 API
-// const API_BASE_URL = '/api/dashboard/users' // 未來使用真實 API 時啟用
-
-// 模擬延遲
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
-
-// 假資料儲存
-const mockUsers: User[] = [
-  {
-    username: 'visitor-admin',
-    email: 'admin@example.com',
-    role: 'admin',
-  },
-  {
-    username: 'visitor-user1',
-    email: 'user1@example.com',
-    role: 'user',
-  },
-  {
-    username: 'visitor-user2',
-    email: 'user2@example.com',
-    role: 'user',
-  },
-  {
-    username: 'visitor-user3',
-    email: 'user3@example.com',
-    role: 'user',
-  },
-  {
-    username: 'visitor-user4',
-    email: 'user4@example.com',
-    role: 'user',
-  },
-  {
-    username: 'visitor-admin2',
-    email: 'admin2@example.com',
-    role: 'admin',
-  },
-  {
-    username: 'visitor-user5',
-    email: 'user5@example.com',
-    role: 'user',
-  },
-  {
-    username: 'visitor-user6',
-    email: 'user6@example.com',
-    role: 'user',
-  },
-]
+const API_BASE_URL = '/api/dashboard/users'
 
 export interface User {
   username: string
   email: string
-  role: 'admin' | 'user'
+  role: string
 }
 
-// GET /dashboard/users - 取得使用者列表
+// GET /api/dashboard/users - 取得使用者列表
 export async function getUsers(): Promise<User[]> {
-  await delay(300)
-  return [...mockUsers]
+  const response = await fetch(API_BASE_URL, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include', // 確保 cookies 會被包含在請求中
+  })
+
+  if (!response.ok) {
+    const errorData = await response
+      .json()
+      .catch(() => ({ message: '取得使用者列表失敗' }))
+    throw new Error(errorData.message || '取得使用者列表失敗')
+  }
+
+  return response.json()
 }
 
-// POST /dashboard/users - 新增使用者
-export async function createUser(user: Omit<User, 'email'> & { email: string }): Promise<User> {
-  await delay(500)
-  
-  // 檢查 email 是否已存在
-  if (mockUsers.some(u => u.email === user.email)) {
-    throw new Error('此電子郵件已被使用')
+// POST /api/dashboard/users - 新增使用者
+export async function createUser(user: {
+  username: string
+  email: string
+  role: string
+}): Promise<User> {
+  const response = await fetch(API_BASE_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include', // 確保 cookies 會被包含在請求中
+    body: JSON.stringify(user),
+  })
+
+  if (!response.ok) {
+    const errorData = await response
+      .json()
+      .catch(() => ({ message: '新增使用者失敗' }))
+    throw new Error(errorData.message || '新增使用者失敗')
   }
-  
-  const newUser: User = {
-    username: user.username,
-    email: user.email,
-    role: user.role,
-  }
-  
-  mockUsers.push(newUser)
-  return { ...newUser }
+
+  return response.json()
 }
 
-// GET /dashboard/users/{email} - 取得單一使用者
+// GET /api/dashboard/users/{email} - 取得單一使用者
 export async function getUserByEmail(email: string): Promise<User> {
-  await delay(300)
-  
-  const user = mockUsers.find(u => u.email === email)
-  if (!user) {
-    throw new Error('使用者不存在')
+  const response = await fetch(`${API_BASE_URL}/${encodeURIComponent(email)}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include', // 確保 cookies 會被包含在請求中
+  })
+
+  if (!response.ok) {
+    const errorData = await response
+      .json()
+      .catch(() => ({ message: '取得使用者資料失敗' }))
+    throw new Error(errorData.message || '取得使用者資料失敗')
   }
-  
-  return { ...user }
+
+  return response.json()
 }
 
-// PUT /dashboard/users/{email} - 更新使用者
+// PUT /api/dashboard/users/{email} - 更新使用者
 export async function updateUser(
   email: string,
-  updates: Partial<User>
+  updates: {
+    username: string
+    email: string
+    role: string
+  }
 ): Promise<User> {
-  await delay(500)
-  
-  const index = mockUsers.findIndex(u => u.email === email)
-  if (index === -1) {
-    throw new Error('使用者不存在')
+  const response = await fetch(`${API_BASE_URL}/${encodeURIComponent(email)}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include', // 確保 cookies 會被包含在請求中
+    body: JSON.stringify(updates),
+  })
+
+  if (!response.ok) {
+    const errorData = await response
+      .json()
+      .catch(() => ({ message: '更新使用者失敗' }))
+    throw new Error(errorData.message || '更新使用者失敗')
   }
-  
-  // 如果更新 email，檢查新 email 是否已被使用
-  if (updates.email && updates.email !== email) {
-    if (mockUsers.some(u => u.email === updates.email)) {
-      throw new Error('此電子郵件已被使用')
-    }
-  }
-  
-  mockUsers[index] = {
-    ...mockUsers[index],
-    ...updates,
-  }
-  
-  return { ...mockUsers[index] }
+
+  return response.json()
 }
 
-// DELETE /dashboard/users/{email} - 刪除使用者
+// DELETE /api/dashboard/users/{email} - 刪除使用者
 export async function deleteUser(email: string): Promise<void> {
-  await delay(500)
-  
-  const index = mockUsers.findIndex(u => u.email === email)
-  if (index === -1) {
-    throw new Error('使用者不存在')
+  const response = await fetch(`${API_BASE_URL}/${encodeURIComponent(email)}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include', // 確保 cookies 會被包含在請求中
+  })
+
+  if (!response.ok) {
+    const errorData = await response
+      .json()
+      .catch(() => ({ message: '刪除使用者失敗' }))
+    throw new Error(errorData.message || '刪除使用者失敗')
   }
-  
-  mockUsers.splice(index, 1)
+
+  // DELETE 請求可能沒有回應內容
+  if (response.status !== 204 && response.headers.get('content-length') !== '0') {
+    await response.json().catch(() => {})
+  }
 }
 
