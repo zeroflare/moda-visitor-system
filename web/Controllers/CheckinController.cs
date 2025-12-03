@@ -175,7 +175,7 @@ public class CheckinController : ControllerBase
                     visitor.VisitorDept = twdiwResult.VisitorDept;
 
 
-                    // 更新 checkin_at：如果是空白，就寫入現在時間（加上8小時作為台灣時區）；如果已有值，就不寫入
+                    // 更新 aZSkin_at：如果是空白，就寫入現在時間（加上8小時作為台灣時區）；如果已有值，就不寫入
                     if (!visitor.CheckinAt.HasValue)
                     {
                         visitor.CheckinAt = DateTime.UtcNow.AddHours(8);

@@ -44,6 +44,6 @@ public class VisitorLogResponse
     public string? MeetingName { get; set; }
     
     [JsonPropertyName("meetingRoom")]
-    public string MeetingRoom { get; set; } = string.Empty;
+    public string? MeetingRoom { get; set; }
 }
 
