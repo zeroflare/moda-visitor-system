@@ -88,6 +88,22 @@ export function RawDataTable() {
     })
   }
 
+  // 格式化類型顯示
+  const formatType = (type: string | null) => {
+    if (!type) return '-'
+    if (type === 'checkin') return '簽到'
+    if (type === 'checkout') return '簽退'
+    return type
+  }
+
+  // 獲取類型對應的 Badge 變體
+  const getTypeVariant = (type: string | null): 'success' | 'warning' | 'secondary' => {
+    if (!type) return 'secondary'
+    if (type === 'checkin') return 'success'
+    if (type === 'checkout') return 'warning'
+    return 'secondary'
+  }
+
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">
       <Card>
@@ -153,8 +169,8 @@ export function RawDataTable() {
                       <tr key={`${log.timestamp}-${index}`} className="border-b hover:bg-muted/50">
                         <td className="p-2 sm:p-3 lg:p-4 whitespace-nowrap text-xs sm:text-sm">{formatDateTime(log.timestamp)}</td>
                         <td className="p-2 sm:p-3 lg:p-4">
-                          <Badge variant={log.type === '簽到' ? 'default' : 'secondary'}>
-                            {log.type || '-'}
+                          <Badge variant={getTypeVariant(log.type)}>
+                            {formatType(log.type)}
                           </Badge>
                         </td>
                         <td className="p-2 sm:p-3 lg:p-4">
