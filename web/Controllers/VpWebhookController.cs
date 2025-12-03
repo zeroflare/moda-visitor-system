@@ -69,8 +69,8 @@ public class VpWebhookController : ControllerBase
         }
     }
 
-    [HttpPost("{id}")]
-    public async Task<IActionResult> PostVpWebhook(string id, [FromBody] JsonElement body)
+    [HttpPost]
+    public async Task<IActionResult> PostVpWebhook([FromBody] JsonElement body)
     {
         try
         {
@@ -79,14 +79,14 @@ public class VpWebhookController : ControllerBase
                 dataArray.ValueKind != JsonValueKind.Array || 
                 dataArray.GetArrayLength() == 0)
             {
-                return BadRequest(new { error = "無效的資料格式" });
+                return BadRequest(new { code = "1001", message = "缺少參數或參數不合法" });
             }
 
             var firstData = dataArray[0];
             if (!firstData.TryGetProperty("claims", out var claims) || 
                 claims.ValueKind != JsonValueKind.Array)
             {
-                return BadRequest(new { error = "無效的 claims 格式" });
+                return BadRequest(new { code = "1001", message = "缺少參數或參數不合法" });
             }
 
             // 提取 visitor 資訊
@@ -123,7 +123,7 @@ public class VpWebhookController : ControllerBase
 
             if (string.IsNullOrEmpty(visitorEmail))
             {
-                return BadRequest(new { error = "缺少 email 資訊" });
+                return BadRequest(new { code = "1001", message = "缺少參數或參數不合法" });
             }
 
             // 取得今天的日期範圍
@@ -271,12 +271,12 @@ public class VpWebhookController : ControllerBase
                 // 不影響主要流程，繼續執行
             }
 
-            return Ok(new { message = "簽退成功" });
+            return Ok(new { code = "0", message = "SUCCESS" });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "PostVpWebhook 發生錯誤: {Id}", id);
-            return StatusCode(500, new { error = "發生錯誤" });
+            _logger.LogError(ex, "PostVpWebhook 發生錯誤");
+            return StatusCode(500, new { code = "500", message = "伺服器內部錯誤，請聯絡客服人員處理" });
         }
     }
 }
