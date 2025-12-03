@@ -542,12 +542,12 @@ export function RegistrationForm({
                   {loading ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      提交中...
+                      送出中...
                     </>
                   ) : (
                     <>
                       <CheckCircle2 className="h-4 w-4" />
-                      提交註冊
+                      送出註冊
                     </>
                   )}
                 </Button>
