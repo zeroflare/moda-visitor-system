@@ -66,6 +66,8 @@ export function RegistrationForm({
   const [fieldErrors, setFieldErrors] = useState<{
     email?: string
     phone?: string
+    name?: string
+    company?: string
   }>({})
   const cooldownIntervalRef = useRef<number | null>(null)
   const expiryIntervalRef = useRef<number | null>(null)
@@ -83,10 +85,21 @@ export function RegistrationForm({
     return emailRegex.test(email)
   }
 
-  // 手機號驗證：09 開頭，共十碼
+  // 手機號驗證：台灣手機號碼或市話格式
   const validatePhone = (phone: string): boolean => {
-    const phoneRegex = /^09\d{8}$/
+    const phoneRegex = /^(?:09\d{2}-?\d{3}-?\d{3}|0\d{1,3}-?\d{6,8})$/
     return phoneRegex.test(phone)
+  }
+
+  // 驗證姓名和公司：只能輸入中英文、數字和底線
+  const validateNameOrCompany = (value: string): boolean => {
+    const regex = /^[\u4e00-\u9fa5a-zA-Z0-9_]+$/
+    return regex.test(value)
+  }
+
+  // 過濾姓名和公司輸入：只保留中英文、數字和底線
+  const filterNameOrCompany = (value: string): string => {
+    return value.replace(/[^\u4e00-\u9fa5a-zA-Z0-9_]/g, '')
   }
 
   // 發送 OTP (POST /register/otp)
@@ -158,7 +171,7 @@ export function RegistrationForm({
     e.preventDefault()
 
     // 清除之前的錯誤
-    const newFieldErrors: { email?: string; phone?: string } = {}
+    const newFieldErrors: { email?: string; phone?: string; name?: string; company?: string } = {}
 
     // 驗證必填欄位
     if (
@@ -181,7 +194,17 @@ export function RegistrationForm({
 
     // 驗證手機號格式
     if (!validatePhone(formData.phone)) {
-      newFieldErrors.phone = '請輸入有效的手機號碼（09 開頭，共十碼）'
+      newFieldErrors.phone = '請輸入有效的台灣手機號碼或市話格式'
+    }
+
+    // 驗證姓名格式
+    if (!validateNameOrCompany(formData.name)) {
+      newFieldErrors.name = '姓名只能輸入中英文、數字和底線'
+    }
+
+    // 驗證公司格式
+    if (!validateNameOrCompany(formData.company)) {
+      newFieldErrors.company = '公司/單位只能輸入中英文、數字和底線'
     }
 
     // 如果有欄位驗證錯誤，顯示錯誤並返回
@@ -331,13 +354,32 @@ export function RegistrationForm({
                   type="text"
                   id="name"
                   value={formData.name}
-                  onChange={e =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  placeholder="請輸入您的姓名"
+                  onChange={e => {
+                    const filteredValue = filterNameOrCompany(e.target.value)
+                    setFormData({ ...formData, name: filteredValue })
+                    // 清除錯誤當用戶開始輸入時
+                    if (fieldErrors.name) {
+                      setFieldErrors({ ...fieldErrors, name: undefined })
+                    }
+                  }}
+                  onBlur={() => {
+                    if (formData.name && !validateNameOrCompany(formData.name)) {
+                      setFieldErrors({
+                        ...fieldErrors,
+                        name: '姓名只能輸入中英文、數字和底線',
+                      })
+                    } else if (formData.name && validateNameOrCompany(formData.name)) {
+                      setFieldErrors({ ...fieldErrors, name: undefined })
+                    }
+                  }}
+                  placeholder="請輸入您的姓名（僅中英文、數字和底線）"
                   maxLength={50}
                   required
+                  aria-invalid={!!fieldErrors.name}
                 />
+                {fieldErrors.name && (
+                  <FieldError>{fieldErrors.name}</FieldError>
+                )}
               </Field>
 
               <Field>
@@ -428,7 +470,8 @@ export function RegistrationForm({
                   id="phone"
                   value={formData.phone}
                   onChange={e => {
-                    const value = e.target.value.replace(/\D/g, '') // 只允許數字
+                    // 允許數字和連字號
+                    const value = e.target.value.replace(/[^\d-]/g, '')
                     setFormData({ ...formData, phone: value })
                     // 清除錯誤當用戶開始輸入時
                     if (fieldErrors.phone) {
@@ -439,14 +482,14 @@ export function RegistrationForm({
                     if (formData.phone && !validatePhone(formData.phone)) {
                       setFieldErrors({
                         ...fieldErrors,
-                        phone: '請輸入有效的手機號碼（09 開頭，共十碼）',
+                        phone: '請輸入有效的台灣手機號碼或市話格式',
                       })
                     } else if (formData.phone && validatePhone(formData.phone)) {
                       setFieldErrors({ ...fieldErrors, phone: undefined })
                     }
                   }}
-                  placeholder="請輸入您的手機號碼 09 開頭"
-                  maxLength={10}
+                  placeholder="例如：0912-345-678 或 02-1234-5678"
+                  maxLength={15}
                   required
                   aria-invalid={!!fieldErrors.phone}
                 />
@@ -461,13 +504,32 @@ export function RegistrationForm({
                   type="text"
                   id="company"
                   value={formData.company}
-                  onChange={e =>
-                    setFormData({ ...formData, company: e.target.value })
-                  }
-                  placeholder="請輸入您的公司或單位名稱"
+                  onChange={e => {
+                    const filteredValue = filterNameOrCompany(e.target.value)
+                    setFormData({ ...formData, company: filteredValue })
+                    // 清除錯誤當用戶開始輸入時
+                    if (fieldErrors.company) {
+                      setFieldErrors({ ...fieldErrors, company: undefined })
+                    }
+                  }}
+                  onBlur={() => {
+                    if (formData.company && !validateNameOrCompany(formData.company)) {
+                      setFieldErrors({
+                        ...fieldErrors,
+                        company: '公司/單位只能輸入中英文、數字和底線',
+                      })
+                    } else if (formData.company && validateNameOrCompany(formData.company)) {
+                      setFieldErrors({ ...fieldErrors, company: undefined })
+                    }
+                  }}
+                  placeholder="請輸入您的公司或單位名稱（僅中英文、數字和底線）"
                   maxLength={100}
                   required
+                  aria-invalid={!!fieldErrors.company}
                 />
+                {fieldErrors.company && (
+                  <FieldError>{fieldErrors.company}</FieldError>
+                )}
               </Field>
 
               <Field>
