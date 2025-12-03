@@ -43,7 +43,7 @@ services:
       - ConnectionStrings__MySQL=Server=mysql;Database=${MYSQL_DATABASE};User=${MYSQL_USER};Password=${MYSQL_PASSWORD};
       - ConnectionStrings__Redis=redis:6379
     volumes:
-      - ./web/Secrets:/app/Secrets:ro
+      - ./web/Secrets:/app/Secrets
     depends_on:
       mysql:
         condition: service_healthy
