@@ -88,27 +88,20 @@ export function ProcessedDataTable() {
         (log.inviterTitle?.toLowerCase().includes(filterInviter.toLowerCase()) ?? false) ||
         (log.inviterEmail?.toLowerCase().includes(filterInviter.toLowerCase()) ?? false)
 
-      // 日期範圍篩選（優先根據簽到時間，若無簽到時間則根據會議開始時間）
+      // 日期範圍篩選（根據會議開始時間）
       let dateMatch = true
       if (dateRange?.from || dateRange?.to) {
-        // 優先使用簽到時間，如果沒有簽到時間則使用會議開始時間
-        const dateToCompare = log.checkinTimestamp 
-          ? new Date(log.checkinTimestamp)
-          : log.meetingStart 
-            ? new Date(log.meetingStart)
-            : null
-        
-        if (!dateToCompare) {
-          // 如果既沒有簽到時間也沒有會議開始時間，則不匹配
+        if (!log.meetingStart) {
+          // 如果沒有會議開始時間，則不匹配
           dateMatch = false
         } else {
-          const compareDate = new Date(dateToCompare)
-          compareDate.setHours(0, 0, 0, 0)
+          const meetingDate = new Date(log.meetingStart)
+          meetingDate.setHours(0, 0, 0, 0)
           
           if (dateRange.from) {
             const startDate = new Date(dateRange.from)
             startDate.setHours(0, 0, 0, 0)
-            if (compareDate < startDate) {
+            if (meetingDate < startDate) {
               dateMatch = false
             }
           }
@@ -116,7 +109,7 @@ export function ProcessedDataTable() {
           if (dateRange.to && dateMatch) {
             const endDate = new Date(dateRange.to)
             endDate.setHours(23, 59, 59, 999)
-            if (compareDate > endDate) {
+            if (meetingDate > endDate) {
               dateMatch = false
             }
           }
@@ -193,7 +186,7 @@ export function ProcessedDataTable() {
   // 格式化日期範圍顯示
   const formatDateRange = () => {
     if (!dateRange?.from && !dateRange?.to) {
-      return '選擇日期範圍'
+      return '選擇會議日期範圍'
     }
     if (dateRange.from && dateRange.to) {
       return `${format(dateRange.from, 'yyyy/MM/dd')} - ${format(dateRange.to, 'yyyy/MM/dd')}`
@@ -204,7 +197,7 @@ export function ProcessedDataTable() {
     if (dateRange.to) {
       return `至 ${format(dateRange.to, 'yyyy/MM/dd')}`
     }
-    return '選擇日期範圍'
+    return '選擇會議日期範圍'
   }
 
   // 準備匯出資料
@@ -396,7 +389,7 @@ export function ProcessedDataTable() {
                     </div>
                     <div className="space-y-2">
                       <Label className="text-xs font-medium">
-                        日期範圍
+                        會議日期範圍
                       </Label>
                       <Popover>
                         <PopoverTrigger asChild>
