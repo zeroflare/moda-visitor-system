@@ -1,9 +1,10 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Pagination } from '@/components/ui/pagination'
-import { Loader2, AlertTriangle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Loader2, AlertTriangle, RefreshCw, Check } from 'lucide-react'
 import { getCheckLogs, type CheckLog } from '@/services/checklogApi'
 
 const ITEMS_PER_PAGE = 10
@@ -13,6 +14,8 @@ export function RawDataTable() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string>('')
   const [currentPage, setCurrentPage] = useState(1)
+  const [autoRefresh, setAutoRefresh] = useState(false)
+  const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // 載入資料
   const loadData = async () => {
@@ -31,6 +34,30 @@ export function RawDataTable() {
   useEffect(() => {
     loadData()
   }, [])
+
+  // 自動刷新邏輯
+  useEffect(() => {
+    if (autoRefresh) {
+      // 啟動自動刷新，每5秒刷新一次
+      intervalRef.current = setInterval(() => {
+        loadData()
+      }, 5000)
+    } else {
+      // 清除定時器
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+    }
+
+    // 清理函數：組件卸載或 autoRefresh 改變時清除定時器
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+    }
+  }, [autoRefresh])
 
   // 分頁計算
   const paginatedLogs = useMemo(() => {
@@ -65,8 +92,30 @@ export function RawDataTable() {
     <div className="flex flex-1 flex-col gap-4 p-4">
       <Card>
         <CardHeader>
-          <CardTitle>原始資料表</CardTitle>
-          <CardDescription>查看和管理簽到簽退原始資料</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>原始資料表</CardTitle>
+              <CardDescription>查看和管理簽到簽退原始資料</CardDescription>
+            </div>
+            <Button
+              variant={autoRefresh ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setAutoRefresh(!autoRefresh)}
+              className="gap-2"
+            >
+              {autoRefresh ? (
+                <>
+                  <Check className="h-4 w-4" />
+                  自動刷新中
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-4 w-4" />
+                  自動刷新
+                </>
+              )}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {error && (
