@@ -79,6 +79,7 @@ if (!string.IsNullOrEmpty(redisConnectionString))
 }
 
 // Add HttpClient for external services
+builder.Services.AddHttpClient();
 builder.Services.AddHttpClient<ITwdiwService, TwdiwService>();
 builder.Services.AddHttpClient<IMailService, MailgunService>();
 builder.Services.AddHttpClient<IGoogleChatService, GoogleChatService>();
