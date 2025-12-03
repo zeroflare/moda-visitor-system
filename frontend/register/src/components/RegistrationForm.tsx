@@ -66,6 +66,8 @@ export function RegistrationForm({
   const [fieldErrors, setFieldErrors] = useState<{
     email?: string
     phone?: string
+    name?: string
+    company?: string
   }>({})
   const cooldownIntervalRef = useRef<number | null>(null)
   const expiryIntervalRef = useRef<number | null>(null)
@@ -83,10 +85,21 @@ export function RegistrationForm({
     return emailRegex.test(email)
   }
 
-  // 手機號驗證：09 開頭，共十碼
+  // 手機號驗證：台灣手機號碼或市話格式
   const validatePhone = (phone: string): boolean => {
-    const phoneRegex = /^09\d{8}$/
+    const phoneRegex = /^(?:09\d{2}-?\d{3}-?\d{3}|0\d{1,3}-?\d{6,8})$/
     return phoneRegex.test(phone)
+  }
+
+  // 驗證姓名和公司：只能輸入中英文、數字和底線
+  const validateNameOrCompany = (value: string): boolean => {
+    const regex = /^[\u4e00-\u9fa5a-zA-Z0-9_]+$/
+    return regex.test(value)
+  }
+
+  // 過濾姓名和公司輸入：只保留中英文、數字和底線
+  const filterNameOrCompany = (value: string): string => {
+    return value.replace(/[^\u4e00-\u9fa5a-zA-Z0-9_]/g, '')
   }
 
   // 發送 OTP (POST /register/otp)
@@ -158,30 +171,47 @@ export function RegistrationForm({
     e.preventDefault()
 
     // 清除之前的錯誤
-    const newFieldErrors: { email?: string; phone?: string } = {}
+    const newFieldErrors: { email?: string; phone?: string; name?: string; company?: string } = {}
 
-    // 驗證必填欄位
-    if (
-      !formData.name ||
-      !formData.email ||
-      !formData.phone ||
-      !formData.company ||
-      !formData.otp
-    ) {
-      const errorMsg = '請填寫所有必填欄位'
-      setError(errorMsg)
-      onError?.(errorMsg)
-      return
+    // 驗證姓名：直接驗證原始輸入
+    const trimmedName = formData.name.trim()
+    if (!trimmedName) {
+      newFieldErrors.name = '請輸入姓名'
+    } else if (!validateNameOrCompany(trimmedName)) {
+      newFieldErrors.name = '姓名只能輸入中英文、數字和底線，不能包含空格或其他特殊字元'
+    }
+
+    // 驗證公司：直接驗證原始輸入
+    const trimmedCompany = formData.company.trim()
+    if (!trimmedCompany) {
+      newFieldErrors.company = '請輸入公司/單位'
+    } else if (!validateNameOrCompany(trimmedCompany)) {
+      newFieldErrors.company = '公司/單位只能輸入中英文、數字和底線，不能包含空格或其他特殊字元'
+    }
+
+    // 驗證電話號碼：直接驗證原始輸入
+    const trimmedPhone = formData.phone.trim()
+    if (!trimmedPhone) {
+      newFieldErrors.phone = '請輸入電話號碼'
+    } else if (!validatePhone(trimmedPhone)) {
+      newFieldErrors.phone = '請輸入有效的台灣手機號碼或市話格式（例如：0912345678 或 0212345678）'
     }
 
     // 驗證 Email 格式
-    if (!validateEmail(formData.email)) {
+    const trimmedEmail = formData.email.trim()
+    if (!trimmedEmail) {
+      newFieldErrors.email = '請輸入電子信箱'
+    } else if (!validateEmail(trimmedEmail)) {
       newFieldErrors.email = '請輸入有效的電子信箱格式'
     }
 
-    // 驗證手機號格式
-    if (!validatePhone(formData.phone)) {
-      newFieldErrors.phone = '請輸入有效的手機號碼（09 開頭，共十碼）'
+    // 驗證 OTP
+    const trimmedOtp = formData.otp.trim()
+    if (!trimmedOtp) {
+      const errorMsg = '請輸入驗證碼'
+      setError(errorMsg)
+      onError?.(errorMsg)
+      return
     }
 
     // 如果有欄位驗證錯誤，顯示錯誤並返回
@@ -212,6 +242,13 @@ export function RegistrationForm({
 
     // 調用真實 API
     try {
+      // 驗證通過後，清理數據用於 API 請求
+      const cleanedName = filterNameOrCompany(formData.name.trim())
+      const cleanedCompany = filterNameOrCompany(formData.company.trim())
+      const cleanedPhone = formData.phone.trim().replace(/\s/g, '')
+      const cleanedEmail = formData.email.trim()
+      const cleanedOtp = formData.otp.trim()
+
       const requestBody: {
         name: string
         email: string
@@ -220,11 +257,11 @@ export function RegistrationForm({
         otp: string
         token?: string
       } = {
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        company: formData.company,
-        otp: formData.otp,
+        name: cleanedName,
+        email: cleanedEmail,
+        phone: cleanedPhone,
+        company: cleanedCompany,
+        otp: cleanedOtp,
       }
 
       // 如果有 token，則添加到請求中
@@ -242,6 +279,10 @@ export function RegistrationForm({
 
       if (!response.ok) {
         const errorData = await response.json()
+        // 檢查是否為 token 不存在或已過期的錯誤
+        if (response.status === 404 && errorData.error === 'token 不存在或已過期') {
+          throw new Error('token 不存在或已過期')
+        }
         throw new Error(errorData.error || '註冊失敗')
       }
 
@@ -331,13 +372,21 @@ export function RegistrationForm({
                   type="text"
                   id="name"
                   value={formData.name}
-                  onChange={e =>
+                  onChange={e => {
                     setFormData({ ...formData, name: e.target.value })
-                  }
-                  placeholder="請輸入您的姓名"
+                    // 清除錯誤當用戶開始輸入時
+                    if (fieldErrors.name) {
+                      setFieldErrors({ ...fieldErrors, name: undefined })
+                    }
+                  }}
+                  placeholder="請輸入您的姓名（僅中英文、數字和底線）"
                   maxLength={50}
                   required
+                  aria-invalid={!!fieldErrors.name}
                 />
+                {fieldErrors.name && (
+                  <FieldError>{fieldErrors.name}</FieldError>
+                )}
               </Field>
 
               <Field>
@@ -428,25 +477,14 @@ export function RegistrationForm({
                   id="phone"
                   value={formData.phone}
                   onChange={e => {
-                    const value = e.target.value.replace(/\D/g, '') // 只允許數字
-                    setFormData({ ...formData, phone: value })
+                    setFormData({ ...formData, phone: e.target.value })
                     // 清除錯誤當用戶開始輸入時
                     if (fieldErrors.phone) {
                       setFieldErrors({ ...fieldErrors, phone: undefined })
                     }
                   }}
-                  onBlur={() => {
-                    if (formData.phone && !validatePhone(formData.phone)) {
-                      setFieldErrors({
-                        ...fieldErrors,
-                        phone: '請輸入有效的手機號碼（09 開頭，共十碼）',
-                      })
-                    } else if (formData.phone && validatePhone(formData.phone)) {
-                      setFieldErrors({ ...fieldErrors, phone: undefined })
-                    }
-                  }}
-                  placeholder="請輸入您的手機號碼 09 開頭"
-                  maxLength={10}
+                  placeholder="例如：0912-345-678 或 02-1234-5678"
+                  maxLength={15}
                   required
                   aria-invalid={!!fieldErrors.phone}
                 />
@@ -461,13 +499,21 @@ export function RegistrationForm({
                   type="text"
                   id="company"
                   value={formData.company}
-                  onChange={e =>
+                  onChange={e => {
                     setFormData({ ...formData, company: e.target.value })
-                  }
-                  placeholder="請輸入您的公司或單位名稱"
+                    // 清除錯誤當用戶開始輸入時
+                    if (fieldErrors.company) {
+                      setFieldErrors({ ...fieldErrors, company: undefined })
+                    }
+                  }}
+                  placeholder="請輸入您的公司或單位名稱（僅中英文、數字和底線）"
                   maxLength={100}
                   required
+                  aria-invalid={!!fieldErrors.company}
                 />
+                {fieldErrors.company && (
+                  <FieldError>{fieldErrors.company}</FieldError>
+                )}
               </Field>
 
               <Field>
@@ -480,12 +526,12 @@ export function RegistrationForm({
                   {loading ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      提交中...
+                      送出中...
                     </>
                   ) : (
                     <>
                       <CheckCircle2 className="h-4 w-4" />
-                      提交註冊
+                      送出註冊
                     </>
                   )}
                 </Button>
