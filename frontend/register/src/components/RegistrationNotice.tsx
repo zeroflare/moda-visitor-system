@@ -25,7 +25,7 @@ export function RegistrationNotice() {
                 className="w-32 h-32 object-contain"
               />
               <a
-                href="https://play.google.com/apps/testing/tw.gov.moda.diw.rc"
+                href="https://www.wallet.gov.tw/apply/beta_app_download_page.html"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block"

@@ -15,7 +15,7 @@ export function RawDataTable() {
   const [error, setError] = useState<string>('')
   const [currentPage, setCurrentPage] = useState(1)
   const [autoRefresh, setAutoRefresh] = useState(false)
-  const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const intervalRef = useRef<number | null>(null)
 
   // 載入資料
   const loadData = async () => {
