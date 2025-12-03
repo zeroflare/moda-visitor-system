@@ -17,6 +17,7 @@ public class VpWebhookController : ControllerBase
     private readonly ApplicationDbContext _context;
     private readonly INotifyWebhookService _notifyWebhookService;
     private readonly IGoogleChatService _googleChatService;
+    private readonly ICacheService _cacheService;
     private readonly ILogger<VpWebhookController> _logger;
 
     public VpWebhookController(
@@ -25,6 +26,7 @@ public class VpWebhookController : ControllerBase
         ApplicationDbContext context,
         INotifyWebhookService notifyWebhookService,
         IGoogleChatService googleChatService,
+        ICacheService cacheService,
         ILogger<VpWebhookController> logger)
     {
         _httpClientFactory = httpClientFactory;
@@ -32,6 +34,7 @@ public class VpWebhookController : ControllerBase
         _context = context;
         _notifyWebhookService = notifyWebhookService;
         _googleChatService = googleChatService;
+        _cacheService = cacheService;
         _logger = logger;
     }
 
@@ -41,31 +44,70 @@ public class VpWebhookController : ControllerBase
         try
         {
             var vpUrl = _configuration["Twdiw:VpUrl"];
+            var vpToken = _configuration["Twdiw:VpToken"];
+            
             if (string.IsNullOrEmpty(vpUrl))
             {
-                return BadRequest(new { error = "VpUrl 未配置" });
+                return BadRequest(new { code = "1001", message = "缺少參數或參數不合法" });
             }
 
-            var url = $"{vpUrl}/api/verifier/deeplink/vp/{id}";
+            if (string.IsNullOrEmpty(vpToken))
+            {
+                return StatusCode(500, new { code = "500", message = "伺服器內部錯誤，請聯絡客服人員處理" });
+            }
+
+            // 產生 UUID 作為 transactionId
+            var transactionId = Guid.NewGuid().ToString();
+            
+            // 將 transactionId 存入 Redis 白名單，有效期1分鐘
+            var whitelistKey = $"vpwebhook:whitelist:{transactionId}";
+            await _cacheService.SetAsync(whitelistKey, "1", TimeSpan.FromMinutes(1));
+            
+            var url = $"{vpUrl}/api/oidvp/qrcode?ref={Uri.EscapeDataString(id)}&transactionId={transactionId}&isCallback=Y";
             
             var httpClient = _httpClientFactory.CreateClient();
-            var response = await httpClient.GetAsync(url);
+            var request = new HttpRequestMessage(HttpMethod.Get, url);
+            request.Headers.Add("Access-Token", vpToken);
+
+            var response = await httpClient.SendAsync(request);
             response.EnsureSuccessStatusCode();
 
             var json = await response.Content.ReadAsStringAsync();
             var data = JsonSerializer.Deserialize<JsonElement>(json);
 
-            return Ok(data);
+            // 提取 authUri
+            string? authUri = null;
+            if (data.TryGetProperty("authUri", out var authUriElement))
+            {
+                authUri = authUriElement.GetString();
+            }
+
+            if (string.IsNullOrEmpty(authUri))
+            {
+                _logger.LogWarning("API 回應中缺少 authUri: {Response}", json);
+                return StatusCode(500, new { code = "500", message = "伺服器內部錯誤，請聯絡客服人員處理" });
+            }
+
+            // 整理回傳資料
+            return Ok(new
+            {
+                code = "0",
+                message = "SUCCESS",
+                data = new
+                {
+                    deepLink = authUri
+                }
+            });
         }
         catch (HttpRequestException ex)
         {
             _logger.LogError(ex, "取得 VP Webhook 資料失敗: {Id}", id);
-            return StatusCode(500, new { error = "取得資料失敗" });
+            return StatusCode(500, new { code = "500", message = "伺服器內部錯誤，請聯絡客服人員處理" });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetVpWebhook 發生錯誤: {Id}", id);
-            return StatusCode(500, new { error = "發生錯誤" });
+            return StatusCode(500, new { code = "500", message = "伺服器內部錯誤，請聯絡客服人員處理" });
         }
     }
 
@@ -74,6 +116,29 @@ public class VpWebhookController : ControllerBase
     {
         try
         {
+            // 檢查 transactionId 是否在白名單中
+            string? transactionId = null;
+            if (body.TryGetProperty("transactionId", out var transactionIdElement))
+            {
+                transactionId = transactionIdElement.GetString();
+            }
+
+            if (string.IsNullOrEmpty(transactionId))
+            {
+                return BadRequest(new { code = "1001", message = "缺少參數或參數不合法" });
+            }
+
+            var whitelistKey = $"vpwebhook:whitelist:{transactionId}";
+            var isInWhitelist = await _cacheService.GetAsync(whitelistKey);
+            
+            if (string.IsNullOrEmpty(isInWhitelist))
+            {
+                return BadRequest(new { code = "1001", message = "缺少參數或參數不合法" });
+            }
+
+            // 確認後從 Redis 移除
+            await _cacheService.DeleteAsync(whitelistKey);
+
             // 解析 JSON body
             if (!body.TryGetProperty("data", out var dataArray) || 
                 dataArray.ValueKind != JsonValueKind.Array || 
