@@ -91,3 +91,9 @@ export async function getMe(): Promise<User> {
 
   return response.json()
 }
+
+// 登出 - 清除 session cookie
+export function logout(): void {
+  // 清除 dashboard_session cookie
+  document.cookie = 'dashboard_session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+}
