@@ -59,6 +59,10 @@ const data = {
           path: "/meetingroom-management",
         },
         {
+          title: "手動排程",
+          path: "/cron-management",
+        },
+        {
           title: "參數設定",
           path: "#",
         },

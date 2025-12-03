@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { getMe } from '@/services/loginApi'
+import { getMe, logout } from '@/services/loginApi'
 import { AppSidebar } from '@/components/app-sidebar'
 import {
   Breadcrumb,
@@ -16,12 +16,14 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from '@/components/ui/sidebar'
+import { Button } from '@/components/ui/button'
 import { Login } from '@/pages/Login'
 import { RawDataTable } from '@/pages/RawDataTable'
 import { ProcessedDataTable } from '@/pages/ProcessedDataTable'
 import { UserManagement } from '@/pages/UserManagement'
 import { CounterManagement } from '@/pages/CounterManagement'
 import { MeetingRoomManagement } from '@/pages/MeetingRoomManagement'
+import { CronManagement } from '@/pages/CronManagement'
 
 interface User {
   email: string
@@ -63,6 +65,13 @@ function App() {
     navigate('/raw-data', { replace: true })
   }
 
+  const handleLogout = () => {
+    logout()
+    setUser(null)
+    setIsAuthenticated(false)
+    navigate('/login', { replace: true })
+  }
+
   // 正在檢查 session，顯示載入狀態或空白
   if (isAuthenticated === null) {
     return (
@@ -79,12 +88,16 @@ function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login onLogin={handleLogin} />} />
-      <Route path="/*" element={<DashboardLayout />} />
+      <Route path="/*" element={<DashboardLayout onLogout={handleLogout} />} />
     </Routes>
   )
 }
 
-function DashboardLayout() {
+interface DashboardLayoutProps {
+  onLogout: () => void
+}
+
+function DashboardLayout({ onLogout }: DashboardLayoutProps) {
   const location = useLocation()
 
   const getBreadcrumb = () => {
@@ -118,6 +131,12 @@ function DashboardLayout() {
         current: '會議室管理',
       }
     }
+    if (location.pathname === '/cron-management') {
+      return {
+        parent: '系統配置',
+        current: '手動排程',
+      }
+    }
     return {
       parent: '',
       current: 'Dashboard',
@@ -131,7 +150,7 @@ function DashboardLayout() {
       <AppSidebar />
       <SidebarInset>
         <header className="flex h-16 shrink-0 items-center gap-2 border-b">
-          <div className="flex items-center gap-2 px-3">
+          <div className="flex items-center gap-2 px-3 flex-1">
             <SidebarTrigger />
             <Separator orientation="vertical" className="mr-2 h-4" />
             <Breadcrumb>
@@ -150,6 +169,11 @@ function DashboardLayout() {
               </BreadcrumbList>
             </Breadcrumb>
           </div>
+          <div className="flex items-center gap-2 px-4">
+            <Button variant="outline" onClick={onLogout}>
+              登出
+            </Button>
+          </div>
         </header>
         <Routes>
           <Route path="/" element={<Navigate to="/raw-data" replace />} />
@@ -158,6 +182,7 @@ function DashboardLayout() {
           <Route path="/user-management" element={<UserManagement />} />
           <Route path="/counter-management" element={<CounterManagement />} />
           <Route path="/meetingroom-management" element={<MeetingRoomManagement />} />
+          <Route path="/cron-management" element={<CronManagement />} />
         </Routes>
       </SidebarInset>
     </SidebarProvider>
