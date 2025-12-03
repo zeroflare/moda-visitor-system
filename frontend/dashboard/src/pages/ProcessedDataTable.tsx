@@ -88,19 +88,27 @@ export function ProcessedDataTable() {
         (log.inviterTitle?.toLowerCase().includes(filterInviter.toLowerCase()) ?? false) ||
         (log.inviterEmail?.toLowerCase().includes(filterInviter.toLowerCase()) ?? false)
 
-      // 日期範圍篩選（根據簽到時間）
+      // 日期範圍篩選（優先根據簽到時間，若無簽到時間則根據會議開始時間）
       let dateMatch = true
       if (dateRange?.from || dateRange?.to) {
-        if (!log.checkinTimestamp) {
+        // 優先使用簽到時間，如果沒有簽到時間則使用會議開始時間
+        const dateToCompare = log.checkinTimestamp 
+          ? new Date(log.checkinTimestamp)
+          : log.meetingStart 
+            ? new Date(log.meetingStart)
+            : null
+        
+        if (!dateToCompare) {
+          // 如果既沒有簽到時間也沒有會議開始時間，則不匹配
           dateMatch = false
         } else {
-          const checkinDate = new Date(log.checkinTimestamp)
-          checkinDate.setHours(0, 0, 0, 0)
+          const compareDate = new Date(dateToCompare)
+          compareDate.setHours(0, 0, 0, 0)
           
           if (dateRange.from) {
             const startDate = new Date(dateRange.from)
             startDate.setHours(0, 0, 0, 0)
-            if (checkinDate < startDate) {
+            if (compareDate < startDate) {
               dateMatch = false
             }
           }
@@ -108,7 +116,7 @@ export function ProcessedDataTable() {
           if (dateRange.to && dateMatch) {
             const endDate = new Date(dateRange.to)
             endDate.setHours(23, 59, 59, 999)
-            if (checkinDate > endDate) {
+            if (compareDate > endDate) {
               dateMatch = false
             }
           }
