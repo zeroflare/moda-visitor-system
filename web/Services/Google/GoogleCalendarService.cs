@@ -215,10 +215,10 @@ public class GoogleCalendarService : IGoogleCalendarService
                 }
 
                 // 解析事件資訊
-                var organizerEmail = evt.Organizer?.Email;
+                var organizerEmail = evt.Creator?.Email;
                 if (string.IsNullOrEmpty(organizerEmail))
                 {
-                    _logger.LogWarning("Skipping event {EventId} with no organizer", evt.Id);
+                    _logger.LogWarning("Skipping event {EventId} with no creator", evt.Id);
                     continue;
                 }
 
