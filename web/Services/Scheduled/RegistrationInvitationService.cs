@@ -61,8 +61,7 @@ public class RegistrationInvitationService : IRegistrationInvitationService
                 .Where(vm => 
                     vm.Meeting.StartAt <= timeRangeEnd &&
                     !vm.Visitor.Notified &&
-                    vm.Meeting.MeetingroomId != null &&
-                    existingMeetingRoomIds.Contains(vm.Meeting.MeetingroomId))
+                    vm.Meeting.MeetingroomId != null)
                 .Select(vm => vm.Visitor)
                 .ToListAsync(cancellationToken);
 
