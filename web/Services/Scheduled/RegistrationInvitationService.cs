@@ -44,13 +44,7 @@ public class RegistrationInvitationService : IRegistrationInvitationService
             _logger.LogInformation("Querying visitors within 36 hours (UTC: {Now:yyyy-MM-dd HH:mm:ss} to {End:yyyy-MM-dd HH:mm:ss})", 
                 now, timeRangeEnd);
 
-            // 獲取所有存在的 meetingroom_id（用於驗證會議室是否存在於 meeting_rooms 資料表）
-            var allMeetingRooms = await _meetingRoomService.GetAllMeetingRoomsAsync();
-            var existingMeetingRoomIds = allMeetingRooms.Select(mr => mr.Id).ToHashSet();
-
-            _logger.LogInformation("Found {Count} meeting rooms in meeting_rooms table", existingMeetingRoomIds.Count);
-
-            // 查詢36小時內的會議，並關聯 visitors（notified = false）和 meeting_rooms
+            // 查詢36小時內的會議，並關聯 visitors（notified = false）
             var eligibleVisitors = await _context.Visitors
                 .Join(
                     _context.Meetings,
@@ -60,12 +54,11 @@ public class RegistrationInvitationService : IRegistrationInvitationService
                 )
                 .Where(vm => 
                     vm.Meeting.StartAt <= timeRangeEnd &&
-                    !vm.Visitor.Notified &&
-                    vm.Meeting.MeetingroomId != null)
+                    !vm.Visitor.Notified)
                 .Select(vm => vm.Visitor)
                 .ToListAsync(cancellationToken);
 
-            _logger.LogInformation("Found {Count} visitors within 36 hours that need notification (with valid meeting rooms)", eligibleVisitors.Count);
+            _logger.LogInformation("Found {Count} visitors within 36 hours that need notification", eligibleVisitors.Count);
 
             // 取得 BaseUrl 配置
             var baseUrl = _configuration["BaseUrl"];
