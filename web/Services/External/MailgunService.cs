@@ -23,7 +23,7 @@ public class MailgunService : IMailService
         var url = $"https://api.mailgun.net/v3/{domain}/messages";
 
         var content = new MultipartFormDataContent();
-        content.Add(new StringContent($"數位發展部訪客系統<noreply@{domain}>"), "from");
+        content.Add(new StringContent($"數位發展部訪客系統<visitor@{domain}>"), "from");
         content.Add(new StringContent(email), "to");
         content.Add(new StringContent("訪客系統電子信箱驗證碼"), "subject");
         content.Add(new StringContent($"您好！\n\n您的驗證碼是：{otp}\n請於 10 分鐘內輸入完成驗證。"), "text");
@@ -51,7 +51,7 @@ public class MailgunService : IMailService
         var url = $"https://api.mailgun.net/v3/{domain}/messages";
 
         var content = new MultipartFormDataContent();
-        content.Add(new StringContent($"數位發展部訪客系統<noreply@{domain}>"), "from");
+        content.Add(new StringContent($"數位發展部訪客系統<visitor@{domain}>"), "from");
         content.Add(new StringContent(email), "to");
         content.Add(new StringContent("訪客系統註冊邀請"), "subject");
         content.Add(new StringContent($"您好！\n\n您收到了一封註冊邀請信。\n\n請點擊以下連結進行註冊：\n{registerUrl}\n\n此連結有效期限為兩天。"), "text");
@@ -79,7 +79,7 @@ public class MailgunService : IMailService
         var url = $"https://api.mailgun.net/v3/{domain}/messages";
 
         var content = new MultipartFormDataContent();
-        content.Add(new StringContent($"數位發展部訪客系統<noreply@{domain}>"), "from");
+        content.Add(new StringContent($"數位發展部訪客系統<visitor@{domain}>"), "from");
         content.Add(new StringContent(inviterEmail), "to");
         content.Add(new StringContent("訪客簽到通知"), "subject");
         content.Add(new StringContent($"您好！\n\n有訪客已完成簽到：\n\n訪客姓名：{visitorName}\n訪客信箱：{visitorEmail}\n會議名稱：{meetingName}\n會議室：{meetingRoom}\n簽到時間：{checkinTime}"), "text");
