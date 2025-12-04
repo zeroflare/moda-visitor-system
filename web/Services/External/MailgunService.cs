@@ -51,11 +51,21 @@ public class MailgunService : IMailService
         var url = $"https://api.mailgun.net/v3/{domain}/messages";
 
         var content = new MultipartFormDataContent();
-        content.Add(new StringContent($"數位發展部訪客系統<visitor@{domain}>"), "from");
+        content.Add(new StringContent($"數位發展部<visitor@{domain}>"), "from");
         content.Add(new StringContent(email), "to");
-        content.Add(new StringContent("訪客系統註冊邀請"), "subject");
-        content.Add(new StringContent($"您好！\n\n您收到了一封註冊邀請信。\n\n請點擊以下連結進行註冊：\n{registerUrl}\n\n此連結有效期限為兩天。"), "text");
-        content.Add(new StringContent($"<p>您好！</p><p>您收到了一封註冊邀請信。</p><p>請點擊以下連結進行註冊：</p><p><a href=\"{registerUrl}\">{registerUrl}</a></p><p>此連結有效期限為兩天。</p>"), "html");
+        content.Add(new StringContent("數位發展部訪客系統 - 訪客資料填寫通知"), "subject");
+        content.Add(new StringContent($"您好，\n\n您即將參與數位發展部的會議，為完成訪客登記程序，請您填寫相關資料。\n\n請點擊以下連結完成資料填寫：\n{registerUrl}\n\n此連結將於 48 小時後失效，請儘早完成填寫。\n\n如有任何問題，請聯繫會議主辦單位。\n\n此為系統自動發送信件，請勿直接回覆。\n\n數位發展部"), "text");
+        content.Add(new StringContent($"<div style=\"font-family: Arial, sans-serif; line-height: 1.6; color: #333;\">" +
+            $"<p>您好，</p>" +
+            $"<p>您即將參與數位發展部的會議，為完成訪客登記程序，請您填寫相關資料。</p>" +
+            $"<p>請點擊以下連結完成資料填寫：</p>" +
+            $"<p style=\"margin: 20px 0;\"><a href=\"{registerUrl}\" style=\"display: inline-block; padding: 12px 24px; background-color: #0066cc; color: #ffffff; text-decoration: none; border-radius: 4px;\">填寫訪客資料</a></p>" +
+            $"<p style=\"color: #666; font-size: 14px;\">或複製以下網址至瀏覽器開啟：<br>{registerUrl}</p>" +
+            $"<p style=\"color: #999; font-size: 12px; margin-top: 30px;\">此連結將於 48 小時後失效，請儘早完成填寫。</p>" +
+            $"<p style=\"color: #999; font-size: 12px;\">如有任何問題，請聯繫會議主辦單位。</p>" +
+            $"<hr style=\"border: none; border-top: 1px solid #eee; margin: 30px 0;\">" +
+            $"<p style=\"color: #999; font-size: 11px;\">此為系統自動發送信件，請勿直接回覆。<br>數位發展部</p>" +
+            $"</div>"), "html");
 
         var request = new HttpRequestMessage(HttpMethod.Post, url);
         request.Headers.Authorization = new AuthenticationHeaderValue("Basic", 
