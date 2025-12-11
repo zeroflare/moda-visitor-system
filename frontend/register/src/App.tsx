@@ -35,6 +35,7 @@ function App() {
   const [qrcodeExpiry, setQrcodeExpiry] = useState<number>(0) // QRCode 有效期倒計時（秒）
   const [email, setEmail] = useState<string>('')
   const [loadingEmail, setLoadingEmail] = useState<boolean>(false)
+  const [tokenExpired, setTokenExpired] = useState<boolean>(false) // Token 是否已過期
   const pollingIntervalRef = useRef<number | null>(null)
   const qrcodeExpiryIntervalRef = useRef<number | null>(null)
 
@@ -46,7 +47,10 @@ function App() {
 
   // 從 token 取得 email
   useEffect(() => {
+    // 如果沒有 token，設置為已過期
     if (!token) {
+      setTokenExpired(true)
+      setLoadingEmail(false)
       return
     }
 
@@ -66,12 +70,20 @@ function App() {
           const data = await response.json()
           if (data.email) {
             setEmail(data.email)
+            setTokenExpired(false)
           } else {
             setError('無法取得註冊資訊')
           }
         } else {
           const errorData = await response.json()
-          setError(errorData.error || '無法取得註冊資訊')
+          // 檢查是否為 token 不存在或已過期的錯誤
+          if (response.status === 404 && errorData.error === 'token 不存在或已過期') {
+            setTokenExpired(true)
+            setError('')
+          } else {
+            setError(errorData.error || '無法取得註冊資訊')
+            setTokenExpired(false)
+          }
         }
       } catch (err) {
         if (!cancelled) {
@@ -91,6 +103,18 @@ function App() {
       cancelled = true
     }
   }, [token])
+
+  // 處理註冊表單錯誤
+  const handleRegistrationError = (errorMsg: string) => {
+    // 檢查是否為 token 不存在或已過期的錯誤
+    if (errorMsg === 'token 不存在或已過期') {
+      setTokenExpired(true)
+      setError('')
+    } else {
+      setError(errorMsg)
+      setTokenExpired(false)
+    }
+  }
 
   // 處理註冊表單提交成功
   const handleRegistrationSubmit = (data: QRCodeResponse) => {
@@ -185,7 +209,21 @@ function App() {
           <h1 className="text-4xl font-bold tracking-tight">訪客註冊</h1>
         </div>
 
-        {error && (
+        {tokenExpired && (
+          <Card>
+            <CardContent className="pt-6">
+              <Alert variant="destructive" className="border-2">
+                <AlertTriangle className="h-5 w-5" />
+                <AlertTitle className="text-lg font-semibold">連結已過期</AlertTitle>
+                <AlertDescription className="mt-2 text-base">
+                  此註冊連結已過期或不存在，請聯繫主辦單位取得新的註冊連結。
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+          </Card>
+        )}
+
+        {error && !tokenExpired && (
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>錯誤</AlertTitle>
@@ -193,7 +231,7 @@ function App() {
           </Alert>
         )}
 
-        {!qrcodeImage && !registrationResult && (
+        {!qrcodeImage && !registrationResult && !tokenExpired && (
           <>
             <RegistrationNotice />
             {loadingEmail ? (
@@ -210,7 +248,7 @@ function App() {
             ) : (
               <RegistrationForm
                 onSubmit={handleRegistrationSubmit}
-                onError={setError}
+                onError={handleRegistrationError}
                 initialEmail={email}
                 token={token}
               />

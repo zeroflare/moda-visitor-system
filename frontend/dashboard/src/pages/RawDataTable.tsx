@@ -1,9 +1,10 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Pagination } from '@/components/ui/pagination'
-import { Loader2, AlertTriangle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Loader2, AlertTriangle, RefreshCw, Check } from 'lucide-react'
 import { getCheckLogs, type CheckLog } from '@/services/checklogApi'
 
 const ITEMS_PER_PAGE = 10
@@ -13,6 +14,8 @@ export function RawDataTable() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string>('')
   const [currentPage, setCurrentPage] = useState(1)
+  const [autoRefresh, setAutoRefresh] = useState(false)
+  const intervalRef = useRef<number | null>(null)
 
   // 載入資料
   const loadData = async () => {
@@ -31,6 +34,30 @@ export function RawDataTable() {
   useEffect(() => {
     loadData()
   }, [])
+
+  // 自動刷新邏輯
+  useEffect(() => {
+    if (autoRefresh) {
+      // 啟動自動刷新，每5秒刷新一次
+      intervalRef.current = setInterval(() => {
+        loadData()
+      }, 5000)
+    } else {
+      // 清除定時器
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+    }
+
+    // 清理函數：組件卸載或 autoRefresh 改變時清除定時器
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+    }
+  }, [autoRefresh])
 
   // 分頁計算
   const paginatedLogs = useMemo(() => {
@@ -61,12 +88,50 @@ export function RawDataTable() {
     })
   }
 
+  // 格式化類型顯示
+  const formatType = (type: string | null) => {
+    if (!type) return '-'
+    if (type === 'checkin') return '簽到'
+    if (type === 'checkout') return '簽退'
+    return type
+  }
+
+  // 獲取類型對應的 Badge 變體
+  const getTypeVariant = (type: string | null): 'success' | 'warning' | 'secondary' => {
+    if (!type) return 'secondary'
+    if (type === 'checkin') return 'success'
+    if (type === 'checkout') return 'warning'
+    return 'secondary'
+  }
+
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">
       <Card>
         <CardHeader>
-          <CardTitle>原始資料表</CardTitle>
-          <CardDescription>查看和管理簽到簽退原始資料</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>原始資料表</CardTitle>
+              <CardDescription>查看和管理簽到簽退原始資料</CardDescription>
+            </div>
+            <Button
+              variant={autoRefresh ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setAutoRefresh(!autoRefresh)}
+              className="gap-2"
+            >
+              {autoRefresh ? (
+                <>
+                  <Check className="h-4 w-4" />
+                  自動刷新中
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-4 w-4" />
+                  自動刷新
+                </>
+              )}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {error && (
@@ -104,8 +169,8 @@ export function RawDataTable() {
                       <tr key={`${log.timestamp}-${index}`} className="border-b hover:bg-muted/50">
                         <td className="p-2 sm:p-3 lg:p-4 whitespace-nowrap text-xs sm:text-sm">{formatDateTime(log.timestamp)}</td>
                         <td className="p-2 sm:p-3 lg:p-4">
-                          <Badge variant={log.type === '簽到' ? 'default' : 'secondary'}>
-                            {log.type || '-'}
+                          <Badge variant={getTypeVariant(log.type)}>
+                            {formatType(log.type)}
                           </Badge>
                         </td>
                         <td className="p-2 sm:p-3 lg:p-4">
