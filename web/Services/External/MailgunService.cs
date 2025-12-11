@@ -51,6 +51,29 @@ public class MailgunService : IMailService
         var domain = _configuration["Mailgun:Domain"];
         var url = $"https://api.mailgun.net/v3/{domain}/messages";
 
+        // --- Begin: Validate and sanitize registerUrl ---
+        if (!Uri.TryCreate(registerUrl, UriKind.Absolute, out var parsedRegisterUri))
+        {
+            _logger.LogError("registerUrl is not a valid absolute URI: {Url}", registerUrl);
+            throw new ArgumentException("無效的註冊連結");
+        }
+        // Only allow HTTP/S
+        if (parsedRegisterUri.Scheme != Uri.UriSchemeHttp && parsedRegisterUri.Scheme != Uri.UriSchemeHttps)
+        {
+            _logger.LogError("registerUrl scheme not allowed: {Scheme}", parsedRegisterUri.Scheme);
+            throw new ArgumentException("註冊連結協議無效");
+        }
+        // Only allow configured host
+        var allowedHost = (_configuration["BaseUrl"] != null)
+            ? new Uri(_configuration["BaseUrl"]).Host
+            : null;
+        if (allowedHost != null && !string.Equals(parsedRegisterUri.Host, allowedHost, StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogError("registerUrl host not allowed: {Host}", parsedRegisterUri.Host);
+            throw new ArgumentException("註冊連結主機無效");
+        }
+        // --- End: Validate and sanitize registerUrl ---
+
         var safeRegisterUrl = WebUtility.HtmlEncode(registerUrl); // Encode for HTML context
         var content = new MultipartFormDataContent();
         content.Add(new StringContent($"數位發展部<visitor@{domain}>"), "from");
