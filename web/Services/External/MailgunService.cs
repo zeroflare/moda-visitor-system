@@ -1,5 +1,6 @@
 using System.Text;
 using System.Net.Http.Headers;
+using System.Net;
 
 namespace web.Services;
 
@@ -50,6 +51,7 @@ public class MailgunService : IMailService
         var domain = _configuration["Mailgun:Domain"];
         var url = $"https://api.mailgun.net/v3/{domain}/messages";
 
+        var safeRegisterUrl = WebUtility.HtmlEncode(registerUrl); // Encode for HTML context
         var content = new MultipartFormDataContent();
         content.Add(new StringContent($"數位發展部<visitor@{domain}>"), "from");
         content.Add(new StringContent(email), "to");
@@ -59,8 +61,8 @@ public class MailgunService : IMailService
             $"<p>您好，</p>" +
             $"<p>您即將參與數位發展部的會議，為完成訪客登記程序，請您填寫相關資料。</p>" +
             $"<p>請點擊以下連結完成資料填寫：</p>" +
-            $"<p style=\"margin: 20px 0;\"><a href=\"{registerUrl}\" style=\"display: inline-block; padding: 12px 24px; background-color: #0066cc; color: #ffffff; text-decoration: none; border-radius: 4px;\">填寫訪客資料</a></p>" +
-            $"<p style=\"color: #666; font-size: 14px;\">或複製以下網址至瀏覽器開啟：<br>{registerUrl}</p>" +
+            $"<p style=\"margin: 20px 0;\"><a href=\"{safeRegisterUrl}\" style=\"display: inline-block; padding: 12px 24px; background-color: #0066cc; color: #ffffff; text-decoration: none; border-radius: 4px;\">填寫訪客資料</a></p>" +
+            $"<p style=\"color: #666; font-size: 14px;\">或複製以下網址至瀏覽器開啟：<br>{safeRegisterUrl}</p>" +
             $"<p style=\"color: #999; font-size: 12px; margin-top: 30px;\">此連結將於 48 小時後失效，請儘早完成填寫。</p>" +
             $"<p style=\"color: #999; font-size: 12px;\">如有任何問題，請聯繫會議主辦單位。</p>" +
             $"<hr style=\"border: none; border-top: 1px solid #eee; margin: 30px 0;\">" +
