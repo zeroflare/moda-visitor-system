@@ -58,7 +58,6 @@ public class RegistrationInvitationService : IRegistrationInvitationService
                 .Select(vm => vm.Visitor)
                 .ToListAsync(cancellationToken);
 
-            _logger.LogInformation("Found {Count} visitors within 36 hours that need notification", eligibleVisitors.Count);
 
             // 取得 BaseUrl 配置
             var baseUrl = _configuration["BaseUrl"];
@@ -114,7 +113,6 @@ public class RegistrationInvitationService : IRegistrationInvitationService
 
             var invitationDuration = DateTime.UtcNow - invitationStartTime;
             _logger.LogInformation("--- Registration invitation emails completed in {Duration:mm\\:ss\\.fff} ---", invitationDuration);
-            _logger.LogInformation("Sent: {Sent}, Failed: {Failed}, Visitors Updated: {Updated}", emailsSent, emailsFailed, visitorsUpdated);
         }
         catch (Exception ex)
         {

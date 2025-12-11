@@ -1,6 +1,7 @@
 using System.Text;
 using System.Net.Http.Headers;
 using System.Net;
+using System.Net.Mail;
 
 namespace web.Services;
 
@@ -23,12 +24,33 @@ public class MailgunService : IMailService
         var domain = _configuration["Mailgun:Domain"];
         var url = $"https://api.mailgun.net/v3/{domain}/messages";
 
+        // 驗證和清理 email 地址
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            throw new ArgumentException("Email 地址不能為空", nameof(email));
+        }
+        
+        MailAddress validatedEmail;
+        try
+        {
+            validatedEmail = new MailAddress(email);
+        }
+        catch (FormatException)
+        {
+            throw new ArgumentException("無效的 Email 地址格式", nameof(email));
+        }
+        
+        var safeEmail = validatedEmail.Address;
+
+        // HTML 轉義 OTP 以防止 XSS 攻擊
+        var safeOtp = WebUtility.HtmlEncode(otp);
+
         var content = new MultipartFormDataContent();
         content.Add(new StringContent($"數位發展部訪客系統<visitor@{domain}>"), "from");
-        content.Add(new StringContent(email), "to");
+        content.Add(new StringContent(safeEmail), "to");
         content.Add(new StringContent("訪客系統電子信箱驗證碼"), "subject");
         content.Add(new StringContent($"您好！\n\n您的驗證碼是：{otp}\n請於 10 分鐘內輸入完成驗證。"), "text");
-        content.Add(new StringContent($"<p>您好！</p><p>您的驗證碼是：<strong>{otp}</strong></p><p>請於 10 分鐘內輸入完成驗證。</p>"), "html");
+        content.Add(new StringContent($"<p>您好！</p><p>您的驗證碼是：<strong>{safeOtp}</strong></p><p>請於 10 分鐘內輸入完成驗證。</p>"), "html");
 
         var request = new HttpRequestMessage(HttpMethod.Post, url);
         request.Headers.Authorization = new AuthenticationHeaderValue("Basic", 
@@ -74,12 +96,32 @@ public class MailgunService : IMailService
         }
         // --- End: Validate and sanitize registerUrl ---
 
+        // 驗證和清理 email 地址
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            throw new ArgumentException("Email 地址不能為空", nameof(email));
+        }
+        
+        // 使用 MailAddress 驗證 email 格式，這會自動清理和驗證地址
+        MailAddress validatedEmail;
+        try
+        {
+            validatedEmail = new MailAddress(email);
+        }
+        catch (FormatException)
+        {
+            throw new ArgumentException("無效的 Email 地址格式", nameof(email));
+        }
+        
+        // 使用驗證後的 email 地址（只使用地址部分，不包含顯示名稱）
+        var safeEmail = validatedEmail.Address;
+
         var safeRegisterUrl = WebUtility.HtmlEncode(registerUrl); // Encode for HTML context
         var content = new MultipartFormDataContent();
         content.Add(new StringContent($"數位發展部<visitor@{domain}>"), "from");
-        content.Add(new StringContent(email), "to");
+        content.Add(new StringContent(safeEmail), "to");
         content.Add(new StringContent("數位發展部訪客系統 - 訪客資料填寫通知"), "subject");
-        content.Add(new StringContent($"您好，\n\n您即將參與數位發展部的會議，為完成訪客登記程序，請您填寫相關資料。\n\n請點擊以下連結完成資料填寫：\n{registerUrl}\n\n此連結將於 48 小時後失效，請儘早完成填寫。\n\n如有任何問題，請聯繫會議主辦單位。\n\n此為系統自動發送信件，請勿直接回覆。\n\n數位發展部"), "text");
+        content.Add(new StringContent($"您好，\n\n您即將參與數位發展部的會議，為完成訪客登記程序，請您填寫相關資料。\n\n請點擊以下連結完成資料填寫：\n{safeRegisterUrl}\n\n此連結將於 48 小時後失效，請儘早完成填寫。\n\n如有任何問題，請聯繫會議主辦單位。\n\n此為系統自動發送信件，請勿直接回覆。\n\n數位發展部"), "text");
         content.Add(new StringContent($"<div style=\"font-family: Arial, sans-serif; line-height: 1.6; color: #333;\">" +
             $"<p>您好，</p>" +
             $"<p>您即將參與數位發展部的會議，為完成訪客登記程序，請您填寫相關資料。</p>" +
@@ -113,12 +155,37 @@ public class MailgunService : IMailService
         var domain = _configuration["Mailgun:Domain"];
         var url = $"https://api.mailgun.net/v3/{domain}/messages";
 
+        // 驗證和清理 email 地址
+        if (string.IsNullOrWhiteSpace(inviterEmail))
+        {
+            throw new ArgumentException("Email 地址不能為空", nameof(inviterEmail));
+        }
+        
+        MailAddress validatedEmail;
+        try
+        {
+            validatedEmail = new MailAddress(inviterEmail);
+        }
+        catch (FormatException)
+        {
+            throw new ArgumentException("無效的 Email 地址格式", nameof(inviterEmail));
+        }
+        
+        var safeInviterEmail = validatedEmail.Address;
+
+        // HTML 轉義用戶輸入以防止 XSS 攻擊
+        var safeVisitorName = WebUtility.HtmlEncode(visitorName);
+        var safeVisitorEmail = WebUtility.HtmlEncode(visitorEmail);
+        var safeMeetingName = WebUtility.HtmlEncode(meetingName);
+        var safeMeetingRoom = WebUtility.HtmlEncode(meetingRoom);
+        var safeCheckinTime = WebUtility.HtmlEncode(checkinTime);
+
         var content = new MultipartFormDataContent();
         content.Add(new StringContent($"數位發展部訪客系統<visitor@{domain}>"), "from");
-        content.Add(new StringContent(inviterEmail), "to");
+        content.Add(new StringContent(safeInviterEmail), "to");
         content.Add(new StringContent("訪客簽到通知"), "subject");
         content.Add(new StringContent($"您好！\n\n有訪客已完成簽到：\n\n訪客姓名：{visitorName}\n訪客信箱：{visitorEmail}\n會議名稱：{meetingName}\n會議室：{meetingRoom}\n簽到時間：{checkinTime}"), "text");
-        content.Add(new StringContent($"<p>您好！</p><p>有訪客已完成簽到：</p><ul><li>訪客姓名：{visitorName}</li><li>訪客信箱：{visitorEmail}</li><li>會議名稱：{meetingName}</li><li>會議室：{meetingRoom}</li><li>簽到時間：{checkinTime}</li></ul>"), "html");
+        content.Add(new StringContent($"<p>您好！</p><p>有訪客已完成簽到：</p><ul><li>訪客姓名：{safeVisitorName}</li><li>訪客信箱：{safeVisitorEmail}</li><li>會議名稱：{safeMeetingName}</li><li>會議室：{safeMeetingRoom}</li><li>簽到時間：{safeCheckinTime}</li></ul>"), "html");
 
         var request = new HttpRequestMessage(HttpMethod.Post, url);
         request.Headers.Authorization = new AuthenticationHeaderValue("Basic", 

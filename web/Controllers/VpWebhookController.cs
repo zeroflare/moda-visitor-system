@@ -255,7 +255,6 @@ public class VpWebhookController : ControllerBase
                 _context.CheckLogs.Add(checkLog);
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("簽退記錄已寫入 check_logs: {Email}, MeetingId: {MeetingId}", visitorEmail, meetingId);
             }
             catch (Exception ex)
             {
@@ -291,7 +290,6 @@ public class VpWebhookController : ControllerBase
                 {
                     _context.Visitors.UpdateRange(todayVisitors);
                     await _context.SaveChangesAsync();
-                    _logger.LogInformation("已更新 {Count} 筆訪客簽退時間: {Email}", todayVisitors.Count, visitorEmail);
                 }
             }
             catch (Exception ex)
@@ -322,7 +320,6 @@ public class VpWebhookController : ControllerBase
                     try
                     {
                         await _googleChatService.SendNotificationAsync(adminWebhook.Webhook, message);
-                        _logger.LogInformation("已發送簽退通知給 admin: {Email}", visitorEmail);
                     }
                     catch (Exception ex)
                     {
