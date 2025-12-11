@@ -54,13 +54,13 @@ public class MailgunService : IMailService
         // --- Begin: Validate and sanitize registerUrl ---
         if (!Uri.TryCreate(registerUrl, UriKind.Absolute, out var parsedRegisterUri))
         {
-            _logger.LogError("registerUrl is not a valid absolute URI: {Url}", registerUrl);
+            _logger.LogError("registerUrl is not a valid absolute URI");
             throw new ArgumentException("無效的註冊連結");
         }
         // Only allow HTTP/S
         if (parsedRegisterUri.Scheme != Uri.UriSchemeHttp && parsedRegisterUri.Scheme != Uri.UriSchemeHttps)
         {
-            _logger.LogError("registerUrl scheme not allowed: {Scheme}", parsedRegisterUri.Scheme);
+            _logger.LogError("registerUrl scheme not allowed");
             throw new ArgumentException("註冊連結協議無效");
         }
         // Only allow configured host
@@ -69,7 +69,7 @@ public class MailgunService : IMailService
             : null;
         if (allowedHost != null && !string.Equals(parsedRegisterUri.Host, allowedHost, StringComparison.OrdinalIgnoreCase))
         {
-            _logger.LogError("registerUrl host not allowed: {Host}", parsedRegisterUri.Host);
+            _logger.LogError("registerUrl host not allowed");
             throw new ArgumentException("註冊連結主機無效");
         }
         // --- End: Validate and sanitize registerUrl ---
