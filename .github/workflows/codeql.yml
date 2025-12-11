@@ -108,3 +108,13 @@ jobs:
       uses: github/codeql-action/analyze@v4
       with:
         category: "/language:${{matrix.language}}"
+        output: codeql-results-${{ matrix.language }}.sarif
+
+    # Upload SARIF file as artifact for download
+    - name: Upload SARIF results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: codeql-results-${{ matrix.language }}
+        path: codeql-results-${{ matrix.language }}.sarif
+        retention-days: 30
