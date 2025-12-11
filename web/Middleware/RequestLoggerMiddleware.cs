@@ -20,7 +20,7 @@ public class RequestLoggerMiddleware
         _logger.LogInformation(
             "[{Method}] {Path} - {StatusCode} ({Duration}ms)",
             context.Request.Method,
-            context.Request.Path,
+            context.Request.Path.ToString().Replace("\r", "").Replace("\n", ""),
             context.Response.StatusCode,
             duration
         );

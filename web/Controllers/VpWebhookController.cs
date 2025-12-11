@@ -101,12 +101,12 @@ public class VpWebhookController : ControllerBase
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "取得 VP Webhook 資料失敗: {Id}", id);
+            _logger.LogError(ex, "取得 VP Webhook 資料失敗: {Id}", id?.Replace("\r", "").Replace("\n", "").Replace("\t", ""));
             return StatusCode(500, new { code = "500", message = "伺服器內部錯誤，請聯絡客服人員處理" });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetVpWebhook 發生錯誤: {Id}", id);
+            _logger.LogError(ex, "GetVpWebhook 發生錯誤: {Id}", id?.Replace("\r", "").Replace("\n", "").Replace("\t", ""));
             return StatusCode(500, new { code = "500", message = "伺服器內部錯誤，請聯絡客服人員處理" });
         }
     }
