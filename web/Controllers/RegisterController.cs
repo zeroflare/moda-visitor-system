@@ -209,7 +209,9 @@ public class RegisterController : ControllerBase
                     else
                     {
                         // 如果找不到註冊資訊，仍然發送通知但不包含用戶資訊
-                        _logger.LogWarning("無法找到 transactionId {TransactionId} 的註冊資訊", transactionId);
+                        // Sanitize transactionId to prevent log injection
+                        var sanitizedTransactionId = transactionId.Replace("\r", "").Replace("\n", "");
+                        _logger.LogWarning("無法找到 transactionId {TransactionId} 的註冊資訊", sanitizedTransactionId);
                         await SendRegistrationCompletedNotificationAsync(transactionId, null);
                     }
                 }
