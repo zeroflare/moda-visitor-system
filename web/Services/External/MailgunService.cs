@@ -37,7 +37,6 @@ public class MailgunService : IMailService
         }
         catch (FormatException)
         {
-            _logger.LogError("Invalid email format: {Email}", email);
             throw new ArgumentException("無效的 Email 地址格式", nameof(email));
         }
         
@@ -111,7 +110,6 @@ public class MailgunService : IMailService
         }
         catch (FormatException)
         {
-            _logger.LogError("Invalid email format: {Email}", email);
             throw new ArgumentException("無效的 Email 地址格式", nameof(email));
         }
         
