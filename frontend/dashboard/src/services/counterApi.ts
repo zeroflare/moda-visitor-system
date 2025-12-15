@@ -27,6 +27,7 @@ export async function getCounters(): Promise<Counter[]> {
 
 // POST /api/dashboard/counters - 新增櫃檯
 export async function createCounter(counter: {
+  id: string
   name: string
 }): Promise<Counter> {
   const response = await fetch(API_BASE_URL, {

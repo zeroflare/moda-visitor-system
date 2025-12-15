@@ -33,6 +33,7 @@ export function MeetingRoomManagement() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [selectedMeetingRoom, setSelectedMeetingRoom] = useState<MeetingRoomResponse | null>(null)
   const [formData, setFormData] = useState({
+    id: '',
     name: '',
     counterId: '',
   })
@@ -70,7 +71,7 @@ export function MeetingRoomManagement() {
 
   // 開啟新增對話框
   const handleOpenCreateDialog = () => {
-    setFormData({ name: '', counterId: '' })
+    setFormData({ id: '', name: '', counterId: '' })
     setFormError('')
     setIsCreateDialogOpen(true)
   }
@@ -83,6 +84,7 @@ export function MeetingRoomManagement() {
       const meetingRoomData = await getMeetingRoomById(meetingRoom.id)
       setSelectedMeetingRoom(meetingRoomData)
       setFormData({
+        id: meetingRoomData.id || '',
         name: meetingRoomData.name || '',
         counterId: meetingRoomData.counterId || '',
       })
@@ -105,12 +107,18 @@ export function MeetingRoomManagement() {
     setSubmitting(true)
 
     try {
+      if (!formData.id.trim()) {
+        setFormError('請填寫會議室 ID')
+        return
+      }
+
       if (!formData.name.trim() || !formData.counterId) {
         setFormError('請填寫所有欄位')
         return
       }
 
       await createMeetingRoom({
+        id: formData.id.trim(),
         name: formData.name.trim(),
         counterId: formData.counterId,
       })
@@ -267,6 +275,16 @@ export function MeetingRoomManagement() {
                   <AlertDescription>{formError}</AlertDescription>
                 </Alert>
               )}
+              <div className="space-y-2">
+                <Label htmlFor="create-id">會議室 ID *</Label>
+                <Input
+                  id="create-id"
+                  value={formData.id}
+                  onChange={(e) => setFormData({ ...formData, id: e.target.value })}
+                  placeholder="請輸入會議室 ID"
+                  required
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="create-name">會議室名稱 *</Label>
                 <Input

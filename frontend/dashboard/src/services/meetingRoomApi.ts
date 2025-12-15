@@ -39,6 +39,7 @@ export async function getMeetingRooms(counterId?: string): Promise<MeetingRoomRe
 
 // POST /api/dashboard/meetingrooms - 新增會議室
 export async function createMeetingRoom(meetingRoom: {
+  id: string
   name: string
   counterId: string
 }): Promise<MeetingRoom> {

@@ -31,6 +31,7 @@ export function CounterManagement() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [selectedCounter, setSelectedCounter] = useState<Counter | null>(null)
   const [formData, setFormData] = useState({
+    id: '',
     name: '',
   })
   const [formError, setFormError] = useState<string>('')
@@ -56,7 +57,7 @@ export function CounterManagement() {
 
   // 開啟新增對話框
   const handleOpenCreateDialog = () => {
-    setFormData({ name: '' })
+    setFormData({ id: '', name: '' })
     setFormError('')
     setIsCreateDialogOpen(true)
   }
@@ -69,6 +70,7 @@ export function CounterManagement() {
       const counterData = await getCounterById(counter.id)
       setSelectedCounter(counterData)
       setFormData({
+        id: counterData.id || '',
         name: counterData.name || '',
       })
       setIsEditDialogOpen(true)
@@ -90,12 +92,17 @@ export function CounterManagement() {
     setSubmitting(true)
 
     try {
+      if (!formData.id.trim()) {
+        setFormError('請填寫櫃檯 ID')
+        return
+      }
+
       if (!formData.name.trim()) {
         setFormError('請填寫櫃檯名稱')
         return
       }
 
-      await createCounter({ name: formData.name.trim() })
+      await createCounter({ id: formData.id.trim(), name: formData.name.trim() })
       setIsCreateDialogOpen(false)
       await loadCounters()
     } catch (err) {
@@ -241,6 +248,16 @@ export function CounterManagement() {
                   <AlertDescription>{formError}</AlertDescription>
                 </Alert>
               )}
+              <div className="space-y-2">
+                <Label htmlFor="create-id">櫃檯 ID *</Label>
+                <Input
+                  id="create-id"
+                  value={formData.id}
+                  onChange={(e) => setFormData({ ...formData, id: e.target.value })}
+                  placeholder="請輸入櫃檯 ID"
+                  required
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="create-name">櫃檯名稱 *</Label>
                 <Input
