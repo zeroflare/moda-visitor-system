@@ -18,7 +18,7 @@ import {
 const data = {
   navMain: [
     {
-      title: "數據列表",
+      title: "資料列表",
       items: [
         {
           title: "原始資料表",
@@ -61,6 +61,10 @@ const data = {
         {
           title: "手動排程",
           path: "/cron-management",
+        },
+        {
+          title: "通知 Webhook 管理",
+          path: "/notifywebhook-management",
         },
         {
           title: "參數設定",

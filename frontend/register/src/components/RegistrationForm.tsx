@@ -242,7 +242,7 @@ export function RegistrationForm({
 
     // 調用真實 API
     try {
-      // 驗證通過後，清理數據用於 API 請求
+      // 驗證通過後，清理資料用於 API 請求
       const cleanedName = filterNameOrCompany(formData.name.trim())
       const cleanedCompany = filterNameOrCompany(formData.company.trim())
       const cleanedPhone = formData.phone.trim().replace(/\s/g, '')

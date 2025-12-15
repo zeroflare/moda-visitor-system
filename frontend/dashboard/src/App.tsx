@@ -24,6 +24,7 @@ import { UserManagement } from '@/pages/UserManagement'
 import { CounterManagement } from '@/pages/CounterManagement'
 import { MeetingRoomManagement } from '@/pages/MeetingRoomManagement'
 import { CronManagement } from '@/pages/CronManagement'
+import { NotifyWebhookManagement } from '@/pages/NotifyWebhookManagement'
 
 interface User {
   email: string
@@ -103,13 +104,13 @@ function DashboardLayout({ onLogout }: DashboardLayoutProps) {
   const getBreadcrumb = () => {
     if (location.pathname === '/raw-data' || location.pathname === '/') {
       return {
-        parent: '數據列表',
+        parent: '資料列表',
         current: '原始資料表',
       }
     }
     if (location.pathname === '/processed-data') {
       return {
-        parent: '數據列表',
+        parent: '資料列表',
         current: '整理後資料表',
       }
     }
@@ -135,6 +136,12 @@ function DashboardLayout({ onLogout }: DashboardLayoutProps) {
       return {
         parent: '系統配置',
         current: '手動排程',
+      }
+    }
+    if (location.pathname === '/notifywebhook-management') {
+      return {
+        parent: '系統配置',
+        current: '通知 Webhook 管理',
       }
     }
     return {
@@ -183,6 +190,7 @@ function DashboardLayout({ onLogout }: DashboardLayoutProps) {
           <Route path="/counter-management" element={<CounterManagement />} />
           <Route path="/meetingroom-management" element={<MeetingRoomManagement />} />
           <Route path="/cron-management" element={<CronManagement />} />
+          <Route path="/notifywebhook-management" element={<NotifyWebhookManagement />} />
         </Routes>
       </SidebarInset>
     </SidebarProvider>
