@@ -14,89 +14,76 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Plus, Pencil, Trash2, Loader2, AlertTriangle } from 'lucide-react'
 import {
-  getMeetingRooms,
-  createMeetingRoom,
-  getMeetingRoomById,
-  updateMeetingRoom,
-  deleteMeetingRoom,
-  type MeetingRoomResponse,
-} from '@/services/meetingRoomApi'
-import { getCounters, type Counter } from '@/services/counterApi'
+  getNotifyWebhooks,
+  createNotifyWebhook,
+  getNotifyWebhookByDept,
+  updateNotifyWebhook,
+  deleteNotifyWebhook,
+  type NotifyWebhook,
+} from '@/services/notifyWebhookApi'
 
-export function MeetingRoomManagement() {
-  const [meetingRooms, setMeetingRooms] = useState<MeetingRoomResponse[]>([])
-  const [counters, setCounters] = useState<Counter[]>([])
+export function NotifyWebhookManagement() {
+  const [webhooks, setWebhooks] = useState<NotifyWebhook[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string>('')
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [selectedMeetingRoom, setSelectedMeetingRoom] = useState<MeetingRoomResponse | null>(null)
+  const [selectedWebhook, setSelectedWebhook] = useState<NotifyWebhook | null>(null)
   const [formData, setFormData] = useState({
-    id: '',
-    name: '',
-    counterId: '',
+    dept: '',
+    type: 'googlechat',
+    webhook: '',
   })
   const [formError, setFormError] = useState<string>('')
   const [submitting, setSubmitting] = useState(false)
 
-  // 載入櫃檯列表
-  const loadCounters = async () => {
-    try {
-      const data = await getCounters()
-      setCounters(data)
-    } catch (err) {
-      console.error('載入櫃檯列表失敗:', err)
-    }
-  }
-
-  // 載入會議室列表
-  const loadMeetingRooms = async () => {
+  // 載入 webhook 列表
+  const loadWebhooks = async () => {
     try {
       setLoading(true)
       setError('')
-      const data = await getMeetingRooms()
-      setMeetingRooms(data)
+      const data = await getNotifyWebhooks()
+      setWebhooks(data)
     } catch (err) {
-      setError(err instanceof Error ? err.message : '載入會議室列表失敗')
+      setError(err instanceof Error ? err.message : '載入 webhook 列表失敗')
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    loadCounters()
-    loadMeetingRooms()
+    loadWebhooks()
   }, [])
 
   // 開啟新增對話框
   const handleOpenCreateDialog = () => {
-    setFormData({ id: '', name: '', counterId: '' })
+    setFormData({ dept: '', type: 'googlechat', webhook: '' })
     setFormError('')
     setIsCreateDialogOpen(true)
   }
 
   // 開啟編輯對話框
-  const handleOpenEditDialog = async (meetingRoom: MeetingRoomResponse) => {
+  const handleOpenEditDialog = async (webhook: NotifyWebhook) => {
     try {
-      if (!meetingRoom.id) return
+      if (!webhook.dept) return
       setFormError('')
-      const meetingRoomData = await getMeetingRoomById(meetingRoom.id)
-      setSelectedMeetingRoom(meetingRoomData)
+      const webhookData = await getNotifyWebhookByDept(webhook.dept)
+      setSelectedWebhook(webhookData)
       setFormData({
-        id: meetingRoomData.id || '',
-        name: meetingRoomData.name || '',
-        counterId: meetingRoomData.counterId || '',
+        dept: webhookData.dept || '',
+        type: webhookData.type || 'googlechat',
+        webhook: webhookData.webhook || '',
       })
       setIsEditDialogOpen(true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : '載入會議室資料失敗')
+      setError(err instanceof Error ? err.message : '載入 webhook 資料失敗')
     }
   }
 
   // 開啟刪除對話框
-  const handleOpenDeleteDialog = (meetingRoom: MeetingRoomResponse) => {
-    setSelectedMeetingRoom(meetingRoom)
+  const handleOpenDeleteDialog = (webhook: NotifyWebhook) => {
+    setSelectedWebhook(webhook)
     setIsDeleteDialogOpen(true)
   }
 
@@ -107,25 +94,25 @@ export function MeetingRoomManagement() {
     setSubmitting(true)
 
     try {
-      if (!formData.id.trim()) {
-        setFormError('請填寫會議室 ID')
+      if (!formData.dept.trim()) {
+        setFormError('請填寫單位')
         return
       }
 
-      if (!formData.name.trim() || !formData.counterId) {
-        setFormError('請填寫所有欄位')
+      if (!formData.webhook.trim()) {
+        setFormError('請填寫 webhook 路徑')
         return
       }
 
-      await createMeetingRoom({
-        id: formData.id.trim(),
-        name: formData.name.trim(),
-        counterId: formData.counterId,
+      await createNotifyWebhook({
+        dept: formData.dept.trim(),
+        type: 'googlechat', // 固定為 googlechat
+        webhook: formData.webhook.trim(),
       })
       setIsCreateDialogOpen(false)
-      await loadMeetingRooms()
+      await loadWebhooks()
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : '新增會議室失敗')
+      setFormError(err instanceof Error ? err.message : '新增 webhook 失敗')
     } finally {
       setSubmitting(false)
     }
@@ -134,26 +121,26 @@ export function MeetingRoomManagement() {
   // 提交編輯表單
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedMeetingRoom || !selectedMeetingRoom.id) return
+    if (!selectedWebhook || !selectedWebhook.dept) return
 
     setFormError('')
     setSubmitting(true)
 
     try {
-      if (!formData.name.trim() || !formData.counterId) {
-        setFormError('請填寫所有欄位')
+      if (!formData.webhook.trim()) {
+        setFormError('請填寫 webhook 路徑')
         return
       }
 
-      await updateMeetingRoom(selectedMeetingRoom.id, {
-        name: formData.name.trim(),
-        counterId: formData.counterId,
+      await updateNotifyWebhook(selectedWebhook.dept, {
+        type: 'googlechat', // 固定為 googlechat
+        webhook: formData.webhook.trim(),
       })
       setIsEditDialogOpen(false)
-      setSelectedMeetingRoom(null)
-      await loadMeetingRooms()
+      setSelectedWebhook(null)
+      await loadWebhooks()
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : '更新會議室失敗')
+      setFormError(err instanceof Error ? err.message : '更新 webhook 失敗')
     } finally {
       setSubmitting(false)
     }
@@ -161,15 +148,15 @@ export function MeetingRoomManagement() {
 
   // 確認刪除
   const handleDeleteConfirm = async () => {
-    if (!selectedMeetingRoom || !selectedMeetingRoom.id) return
+    if (!selectedWebhook || !selectedWebhook.dept) return
 
     try {
-      await deleteMeetingRoom(selectedMeetingRoom.id)
+      await deleteNotifyWebhook(selectedWebhook.dept)
       setIsDeleteDialogOpen(false)
-      setSelectedMeetingRoom(null)
-      await loadMeetingRooms()
+      setSelectedWebhook(null)
+      await loadWebhooks()
     } catch (err) {
-      setError(err instanceof Error ? err.message : '刪除會議室失敗')
+      setError(err instanceof Error ? err.message : '刪除 webhook 失敗')
       setIsDeleteDialogOpen(false)
     }
   }
@@ -180,12 +167,12 @@ export function MeetingRoomManagement() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>會議室管理</CardTitle>
-              <CardDescription>管理系統會議室資訊</CardDescription>
+              <CardTitle>通知 Webhook 管理</CardTitle>
+              <CardDescription>管理系統通知 webhook 設定</CardDescription>
             </div>
             <Button onClick={handleOpenCreateDialog}>
               <Plus className="h-4 w-4 mr-2" />
-              新增會議室
+              新增 Webhook
             </Button>
           </div>
         </CardHeader>
@@ -206,45 +193,40 @@ export function MeetingRoomManagement() {
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left p-4 font-medium">會議室 ID</th>
-                    <th className="text-left p-4 font-medium">會議室名稱</th>
-                    <th className="text-left p-4 font-medium">櫃檯 ID</th>
-                    <th className="text-left p-4 font-medium">櫃檯名稱</th>
+                    <th className="text-left p-4 font-medium">單位</th>
+                    <th className="text-left p-4 font-medium">類型</th>
+                    <th className="text-left p-4 font-medium">Webhook 路徑</th>
                     <th className="text-right p-4 font-medium">操作</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {meetingRooms.length === 0 ? (
+                  {webhooks.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="text-center p-8 text-muted-foreground">
-                        尚無會議室資料
+                      <td colSpan={4} className="text-center p-8 text-muted-foreground">
+                        尚無 webhook 資料
                       </td>
                     </tr>
                   ) : (
-                    meetingRooms.map((meetingRoom) => (
-                      <tr
-                        key={meetingRoom.id || Math.random()}
-                        className="border-b hover:bg-muted/50"
-                      >
-                        <td className="p-4 font-mono text-sm">{meetingRoom.id || '-'}</td>
-                        <td className="p-4">{meetingRoom.name || '-'}</td>
-                        <td className="p-4 font-mono text-sm">{meetingRoom.counterId || '-'}</td>
-                        <td className="p-4">{meetingRoom.counterName || '-'}</td>
+                    webhooks.map((webhook) => (
+                      <tr key={webhook.dept} className="border-b hover:bg-muted/50">
+                        <td className="p-4">{webhook.dept || '-'}</td>
+                        <td className="p-4">{webhook.type || '-'}</td>
+                        <td className="p-4 font-mono text-sm break-all">{webhook.webhook || '-'}</td>
                         <td className="p-4">
                           <div className="flex items-center justify-end gap-2">
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleOpenEditDialog(meetingRoom)}
-                              disabled={!meetingRoom.id}
+                              onClick={() => handleOpenEditDialog(webhook)}
+                              disabled={!webhook.dept}
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="destructive"
                               size="sm"
-                              onClick={() => handleOpenDeleteDialog(meetingRoom)}
-                              disabled={!meetingRoom.id}
+                              onClick={() => handleOpenDeleteDialog(webhook)}
+                              disabled={!webhook.dept}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -260,12 +242,12 @@ export function MeetingRoomManagement() {
         </CardContent>
       </Card>
 
-      {/* 新增會議室對話框 */}
+      {/* 新增 Webhook 對話框 */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>新增會議室</DialogTitle>
-            <DialogDescription>請填寫會議室資訊以新增會議室</DialogDescription>
+            <DialogTitle>新增 Webhook</DialogTitle>
+            <DialogDescription>請填寫 webhook 資訊以新增通知設定</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreateSubmit}>
             <div className="space-y-4 py-4">
@@ -276,41 +258,34 @@ export function MeetingRoomManagement() {
                 </Alert>
               )}
               <div className="space-y-2">
-                <Label htmlFor="create-id">會議室 ID *</Label>
+                <Label htmlFor="create-dept">單位 *</Label>
                 <Input
-                  id="create-id"
-                  value={formData.id}
-                  onChange={(e) => setFormData({ ...formData, id: e.target.value })}
-                  placeholder="請輸入會議室 ID"
+                  id="create-dept"
+                  value={formData.dept}
+                  onChange={(e) => setFormData({ ...formData, dept: e.target.value })}
+                  placeholder="請輸入單位名稱"
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="create-name">會議室名稱 *</Label>
+                <Label htmlFor="create-type">類型 *</Label>
                 <Input
-                  id="create-name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="請輸入會議室名稱"
-                  required
+                  id="create-type"
+                  value={formData.type}
+                  disabled
+                  className="bg-muted"
                 />
+                <p className="text-sm text-muted-foreground">類型固定為 googlechat</p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="create-counter">櫃檯 *</Label>
-                <select
-                  id="create-counter"
-                  value={formData.counterId}
-                  onChange={(e) => setFormData({ ...formData, counterId: e.target.value })}
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                <Label htmlFor="create-webhook">Webhook 路徑 *</Label>
+                <Input
+                  id="create-webhook"
+                  value={formData.webhook}
+                  onChange={(e) => setFormData({ ...formData, webhook: e.target.value })}
+                  placeholder="請輸入 webhook URL"
                   required
-                >
-                  <option value="">請選擇櫃檯</option>
-                  {counters.map((counter) => (
-                    <option key={counter.id} value={counter.id || ''}>
-                      {counter.name || counter.id}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
             </div>
             <DialogFooter>
@@ -337,12 +312,12 @@ export function MeetingRoomManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* 編輯會議室對話框 */}
+      {/* 編輯 Webhook 對話框 */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>編輯會議室</DialogTitle>
-            <DialogDescription>修改會議室資訊</DialogDescription>
+            <DialogTitle>編輯 Webhook</DialogTitle>
+            <DialogDescription>修改 webhook 資訊</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleEditSubmit}>
             <div className="space-y-4 py-4">
@@ -353,31 +328,34 @@ export function MeetingRoomManagement() {
                 </Alert>
               )}
               <div className="space-y-2">
-                <Label htmlFor="edit-name">會議室名稱 *</Label>
+                <Label htmlFor="edit-dept">單位</Label>
                 <Input
-                  id="edit-name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="請輸入會議室名稱"
-                  required
+                  id="edit-dept"
+                  value={formData.dept}
+                  disabled
+                  className="bg-muted"
                 />
+                <p className="text-sm text-muted-foreground">單位無法修改</p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-counter">櫃檯 *</Label>
-                <select
-                  id="edit-counter"
-                  value={formData.counterId}
-                  onChange={(e) => setFormData({ ...formData, counterId: e.target.value })}
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                <Label htmlFor="edit-type">類型 *</Label>
+                <Input
+                  id="edit-type"
+                  value={formData.type}
+                  disabled
+                  className="bg-muted"
+                />
+                <p className="text-sm text-muted-foreground">類型固定為 googlechat</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-webhook">Webhook 路徑 *</Label>
+                <Input
+                  id="edit-webhook"
+                  value={formData.webhook}
+                  onChange={(e) => setFormData({ ...formData, webhook: e.target.value })}
+                  placeholder="請輸入 webhook URL"
                   required
-                >
-                  <option value="">請選擇櫃檯</option>
-                  {counters.map((counter) => (
-                    <option key={counter.id} value={counter.id || ''}>
-                      {counter.name || counter.id}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
             </div>
             <DialogFooter>
@@ -410,7 +388,7 @@ export function MeetingRoomManagement() {
           <DialogHeader>
             <DialogTitle>確認刪除</DialogTitle>
             <DialogDescription>
-              您確定要刪除會議室「{selectedMeetingRoom?.name}」嗎？
+              您確定要刪除單位「{selectedWebhook?.dept}」的 webhook 嗎？
               <br />
               此操作無法復原。
             </DialogDescription>
