@@ -25,7 +25,7 @@ export function RegistrationNotice() {
                 className="w-32 h-32 object-contain"
               />
               <a
-                href="https://appgroup.mitake.com.tw/NewServices/controller/AppFileDownload?key=jDMGQs71gvisJ9ox70AI3Q"
+                href="https://play.google.com/store/apps/details?id=tw.gov.moda.diw"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block"
@@ -47,7 +47,7 @@ export function RegistrationNotice() {
                 className="w-32 h-32 object-contain"
               />
               <a
-                href="itms-services://?action=download-manifest&url=https://appgroup.mitake.com.tw/NewServices/controller/AppFileDownload%3Fkey%3DRlsaF3VjLm5srtR_iRXJiA%26type%3DI"
+                href="https://apps.apple.com/tw/app/%E6%95%B8%E4%BD%8D%E6%86%91%E8%AD%89%E7%9A%AE%E5%A4%BE/id6742222992"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block"
