@@ -134,6 +134,43 @@ public class DashboardLoginController : ControllerBase
             return StatusCode(500, new { error = "伺服器錯誤" });
         }
     }
+
+    /// <summary>
+    /// Dashboard 登出：清除 session 與 cookie
+    /// </summary>
+    [HttpGet("/api/dashboard/logout")]
+    public async Task<IActionResult> Logout()
+    {
+        try
+        {
+            var sessionId = Request.Cookies["dashboard_session"];
+
+            if (!string.IsNullOrEmpty(sessionId))
+            {
+                await _cacheService.DeleteAsync($"dashboard:session:{sessionId}");
+
+                // 清除 cookie
+                Response.Cookies.Append("dashboard_session", string.Empty, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.Lax,
+                    Expires = DateTimeOffset.UnixEpoch,
+                    Path = "/"
+                });
+            }
+
+            // 清除本地 Session
+            HttpContext.Session.Clear();
+
+            return Ok(new { message = "Logout successful" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "登出失敗");
+            return StatusCode(500, new { error = "伺服器錯誤" });
+        }
+    }
 }
 
 // Request models
