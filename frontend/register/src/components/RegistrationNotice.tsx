@@ -25,7 +25,7 @@ export function RegistrationNotice() {
                 className="w-32 h-32 object-contain"
               />
               <a
-                href="https://www.wallet.gov.tw/apply/beta_app_download_page.html"
+                href="https://appgroup.mitake.com.tw/NewServices/controller/AppFileDownload?key=jDMGQs71gvisJ9ox70AI3Q"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block"
@@ -47,7 +47,7 @@ export function RegistrationNotice() {
                 className="w-32 h-32 object-contain"
               />
               <a
-                href="https://testflight.apple.com/join/PssjD8qx"
+                href="itms-services://?action=download-manifest&url=https://appgroup.mitake.com.tw/NewServices/controller/AppFileDownload%3Fkey%3DRlsaF3VjLm5srtR_iRXJiA%26type%3DI"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block"
