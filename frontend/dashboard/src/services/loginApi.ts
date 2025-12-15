@@ -92,8 +92,36 @@ export async function getMe(): Promise<User> {
   return response.json()
 }
 
-// 登出 - 清除 session cookie
-export function logout(): void {
-  // 清除 dashboard_session cookie
-  document.cookie = 'dashboard_session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+export interface LogoutResponse {
+  message: string
+}
+
+// GET /api/dashboard/logout - 登出，清除 session 與 cookie
+export async function logout(): Promise<void> {
+  const API_LOGOUT_URL = '/api/dashboard/logout'
+
+  try {
+    const response = await fetch(API_LOGOUT_URL, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include', // 確保 cookies 會被包含在請求中
+    })
+
+    if (!response.ok) {
+      const errorData = await response
+        .json()
+        .catch(() => ({ error: '登出失敗' }))
+      throw new Error(errorData.error || '登出失敗')
+    }
+
+    // 即使後端成功，也清除本地 cookie（以防萬一）
+    document.cookie = 'dashboard_session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+  } catch (error) {
+    // 即使 API 調用失敗，也清除本地 cookie
+    document.cookie = 'dashboard_session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+    // 重新拋出錯誤，讓調用者知道登出可能未完全成功
+    throw error
+  }
 }
