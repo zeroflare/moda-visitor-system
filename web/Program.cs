@@ -61,6 +61,9 @@ builder.Services.AddScoped<ICheckLogService, CheckLogService>();
 // Add Employee Service
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 
+// Add Secret Service
+builder.Services.AddScoped<ISecretService, SecretService>();
+
 // Add Google Services
 builder.Services.AddSingleton<IGoogleAuthService, GoogleAuthService>();
 builder.Services.AddScoped<IGooglePeopleService, GooglePeopleService>();
