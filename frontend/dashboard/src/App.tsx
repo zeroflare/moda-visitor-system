@@ -66,11 +66,18 @@ function App() {
     navigate('/raw-data', { replace: true })
   }
 
-  const handleLogout = () => {
-    logout()
-    setUser(null)
-    setIsAuthenticated(false)
-    navigate('/login', { replace: true })
+  const handleLogout = async () => {
+    try {
+      await logout()
+    } catch (error) {
+      // 即使 API 調用失敗，也清除本地狀態
+      console.error('登出時發生錯誤:', error)
+    } finally {
+      // 無論成功或失敗，都清除本地狀態並導航到登入頁面
+      setUser(null)
+      setIsAuthenticated(false)
+      navigate('/login', { replace: true })
+    }
   }
 
   // 正在檢查 session，顯示載入狀態或空白
