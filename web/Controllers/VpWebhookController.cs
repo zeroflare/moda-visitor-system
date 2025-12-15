@@ -298,13 +298,15 @@ public class VpWebhookController : ControllerBase
                 // 繼續執行，不影響主要流程
             }
 
-            // 發送 Google Chat 通知給 admin
+            // 發送 Google Chat 通知
             try
             {
                 var checkoutTime = DateTime.UtcNow.AddHours(8).ToString("yyyy-MM-dd HH:mm");
                 var meetingName = meeting?.MeetingName ?? "未命名會議";
                 var meetingRoom = visitorWithMeeting?.MeetingRoom?.Name ?? "未指定會議室";
                 var inviterName = meeting?.InviterName ?? meeting?.InviterEmail ?? "未知";
+                var inviterDept = meeting?.InviterDept;
+                var inviterEmail = meeting?.InviterEmail;
 
                 var message = $"🚪 訪客簽退通知\n\n" +
                              $"訪客姓名：{visitorName ?? "未知"}\n" +
@@ -324,6 +326,23 @@ public class VpWebhookController : ControllerBase
                     catch (Exception ex)
                     {
                         _logger.LogError(ex, "發送 admin Google Chat 通知失敗");
+                    }
+                }
+
+                // 通知邀請人同單位的 Google Chat
+                if (!string.IsNullOrEmpty(inviterDept))
+                {
+                    var deptWebhook = await _notifyWebhookService.GetNotifyWebhookByDeptAndTypeAsync(inviterDept, "googlechat");
+                    if (deptWebhook != null && !string.IsNullOrEmpty(deptWebhook.Webhook))
+                    {
+                        try
+                        {
+                            await _googleChatService.SendNotificationAsync(deptWebhook.Webhook, message);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "發送 dept Google Chat 通知失敗: {Dept}", inviterDept);
+                        }
                     }
                 }
             }
