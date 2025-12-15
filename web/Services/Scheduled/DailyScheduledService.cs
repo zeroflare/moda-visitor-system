@@ -1,6 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using NCrontab;
+using web.Services;
 
 namespace web.Services.Scheduled;
 
@@ -31,15 +33,32 @@ public class DailyScheduledService : BackgroundService, IDailyScheduledService
         {
             try
             {
-                // 計算到下一個 UTC+0 0:00 的時間
+                // 從資料庫讀取 cron 表達式
+                var cronExpression = await GetCronExpressionAsync(stoppingToken);
+                
+                // 解析 cron 表達式
+                CrontabSchedule schedule;
+                try
+                {
+                    schedule = CrontabSchedule.Parse(cronExpression);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Invalid cron expression: {CronExpression}. Using default: 0 * * * *", cronExpression);
+                    // 如果 cron 表達式無效，使用預設值（每小時執行一次）
+                    schedule = CrontabSchedule.Parse("0 * * * *");
+                }
+
+                // 計算下一個執行時間
                 var now = DateTime.UtcNow;
-                var nextMidnight = now.Date.AddDays(1); // 下一個 UTC 午夜
-                var delay = nextMidnight - now;
+                var nextRun = schedule.GetNextOccurrence(now);
+                var delay = nextRun - now;
 
+                _logger.LogInformation("Cron expression: {CronExpression}", cronExpression);
                 _logger.LogInformation("Next scheduled execution at UTC: {NextExecution:yyyy-MM-dd HH:mm:ss} (in {Delay:hh\\:mm\\:ss})", 
-                    nextMidnight, delay);
+                    nextRun, delay);
 
-                // 等待到下一個 UTC 午夜
+                // 等待到下一個執行時間
                 await Task.Delay(delay, stoppingToken);
 
                 // 執行排程任務
@@ -59,6 +78,39 @@ public class DailyScheduledService : BackgroundService, IDailyScheduledService
         }
 
         _logger.LogInformation("Daily Scheduled Service stopped");
+    }
+
+    private async Task<string> GetCronExpressionAsync(CancellationToken cancellationToken)
+    {
+        const string defaultCron = "*/15 * * * *"; // 預設：每 15 分鐘執行一次
+        const string secretKey = "scheduled";
+
+        try
+        {
+            using var scope = _serviceScopeFactory.CreateScope();
+            var secretService = scope.ServiceProvider.GetService<ISecretService>();
+            
+            if (secretService == null)
+            {
+                _logger.LogWarning("SecretService not available. Using default cron expression: {DefaultCron}", defaultCron);
+                return defaultCron;
+            }
+
+            var secret = await secretService.GetSecretByIdAsync(secretKey);
+            if (secret == null || string.IsNullOrWhiteSpace(secret.Value))
+            {
+                _logger.LogInformation("No cron expression found in database. Using default: {DefaultCron}", defaultCron);
+                return defaultCron;
+            }
+
+            _logger.LogInformation("Using cron expression from database: {CronExpression}", secret.Value);
+            return secret.Value.Trim();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error reading cron expression from database. Using default: {DefaultCron}", defaultCron);
+            return defaultCron;
+        }
     }
 
     public async Task ExecuteDailyTaskAsync(CancellationToken cancellationToken = default)
