@@ -61,6 +61,9 @@ builder.Services.AddScoped<ICheckLogService, CheckLogService>();
 // Add Employee Service
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 
+// Add VisitorProfile Service
+builder.Services.AddScoped<IVisitorProfileService, VisitorProfileService>();
+
 // Add Secret Service
 builder.Services.AddScoped<ISecretService, SecretService>();
 
@@ -79,6 +82,11 @@ if (!string.IsNullOrEmpty(redisConnectionString))
     builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
         ConnectionMultiplexer.Connect(redisConnectionString));
     builder.Services.AddSingleton<ICacheService, RedisCacheService>();
+}
+else
+{
+    // 如果 Redis 不可用，使用內存緩存作為 fallback
+    builder.Services.AddSingleton<ICacheService, MemoryCacheService>();
 }
 
 // Add HttpClient for external services

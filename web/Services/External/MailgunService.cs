@@ -80,11 +80,7 @@ public class MailgunService : IMailService
             throw new ArgumentException("無效的註冊連結");
         }
         // Only allow HTTP/S
-        if (parsedRegisterUri.Scheme != Uri.UriSchemeHttp && parsedRegisterUri.Scheme != Uri.UriSchemeHttps)
-        {
-            _logger.LogError("registerUrl scheme not allowed");
-            throw new ArgumentException("註冊連結協議無效");
-        }
+
         // Only allow configured host
         var allowedHost = (_configuration["BaseUrl"] != null)
             ? new Uri(_configuration["BaseUrl"]).Host
