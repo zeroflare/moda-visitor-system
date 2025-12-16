@@ -98,16 +98,24 @@ function App() {
       clearInterval(countdownIntervalRef.current)
     }
 
+    // 使用 Date.now() 計算目標時間，避免瀏覽器休眠導致計時暫停
+    const duration = 300 // 5分鐘
+    const endTime = Date.now() + duration * 1000
+
     // 每秒更新倒計時
     countdownIntervalRef.current = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          // 倒計時結束，觸發 QRCode 刷新
-          generateQRCode()
-          return 300 // 重置為 5 分鐘
+      const now = Date.now()
+      const remaining = Math.ceil((endTime - now) / 1000)
+
+      if (remaining <= 0) {
+        // 倒計時結束，觸發 QRCode 刷新
+        if (countdownIntervalRef.current) {
+          clearInterval(countdownIntervalRef.current)
         }
-        return prev - 1
-      })
+        generateQRCode()
+      } else {
+        setCountdown(remaining)
+      }
     }, 1000)
 
     return () => {
