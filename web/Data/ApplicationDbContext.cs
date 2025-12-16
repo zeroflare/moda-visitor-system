@@ -14,6 +14,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<MeetingRoom> MeetingRooms { get; set; }
     public DbSet<Meeting> Meetings { get; set; }
     public DbSet<Visitor> Visitors { get; set; }
+    public DbSet<VisitorProfile> VisitorProfiles { get; set; }
     public DbSet<Employee> Employees { get; set; }
     public DbSet<CheckLog> CheckLogs { get; set; }
     public DbSet<NotifyWebhook> NotifyWebhooks { get; set; }
@@ -142,6 +143,24 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.Id).HasMaxLength(255).IsRequired();
             entity.Property(e => e.Value).IsRequired();
             entity.ToTable("secrets");
+        });
+
+        modelBuilder.Entity<VisitorProfile>(entity =>
+        {
+            entity.HasKey(e => e.Email);
+            entity.Property(e => e.Email).HasMaxLength(255).IsRequired();
+            entity.Property(e => e.Name).HasMaxLength(200).HasColumnName("name");
+            entity.Property(e => e.Company).HasMaxLength(200).HasColumnName("company");
+            entity.Property(e => e.Phone).HasMaxLength(50).HasColumnName("phone");
+            entity.Property(e => e.Cid).HasMaxLength(50).HasColumnName("cid");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+            entity.Property(e => e.ExpiresAt).HasColumnName("expires_at");
+            entity.ToTable("visitor_profiles");
+            
+            // 建立索引
+            entity.HasIndex(e => e.Email).IsUnique();
+            entity.HasIndex(e => e.ExpiresAt);
         });
     }
 }

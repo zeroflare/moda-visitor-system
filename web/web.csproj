@@ -16,6 +16,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="StackExchange.Redis" Version="2.8.16" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.15.0" />
     <PackageReference Include="System.Text.Json" Version="8.0.5" />
     <PackageReference Include="Google.Apis.People.v1" Version="1.25.0.830" />
     <PackageReference Include="Google.Apis.Auth" Version="1.69.0" />
