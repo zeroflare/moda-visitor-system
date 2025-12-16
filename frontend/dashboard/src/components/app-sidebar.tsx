@@ -42,6 +42,10 @@ const data = {
           path: "/user-management",
         },
         {
+          title: "發送註冊信",
+          path: "/register-mail",
+        },
+        {
           title: "操作紀錄",
           path: "#",
         },

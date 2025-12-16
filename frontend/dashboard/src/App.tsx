@@ -25,6 +25,7 @@ import { CounterManagement } from '@/pages/CounterManagement'
 import { MeetingRoomManagement } from '@/pages/MeetingRoomManagement'
 import { CronManagement } from '@/pages/CronManagement'
 import { NotifyWebhookManagement } from '@/pages/NotifyWebhookManagement'
+import { RegisterMail } from '@/pages/RegisterMail'
 
 interface User {
   email: string
@@ -151,6 +152,12 @@ function DashboardLayout({ onLogout }: DashboardLayoutProps) {
         current: '通知 Webhook 管理',
       }
     }
+    if (location.pathname === '/register-mail') {
+      return {
+        parent: '帳號與安全',
+        current: '發送註冊信',
+      }
+    }
     return {
       parent: '',
       current: 'Dashboard',
@@ -194,6 +201,7 @@ function DashboardLayout({ onLogout }: DashboardLayoutProps) {
           <Route path="/raw-data" element={<RawDataTable />} />
           <Route path="/processed-data" element={<ProcessedDataTable />} />
           <Route path="/user-management" element={<UserManagement />} />
+          <Route path="/register-mail" element={<RegisterMail />} />
           <Route path="/counter-management" element={<CounterManagement />} />
           <Route path="/meetingroom-management" element={<MeetingRoomManagement />} />
           <Route path="/cron-management" element={<CronManagement />} />
