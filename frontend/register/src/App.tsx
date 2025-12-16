@@ -127,21 +127,30 @@ function App() {
 
   // QRCode 有效期倒計時
   useEffect(() => {
-    if (qrcodeExpiry <= 0 || !qrcodeImage) {
-      if (qrcodeExpiryIntervalRef.current) {
-        clearInterval(qrcodeExpiryIntervalRef.current)
-        qrcodeExpiryIntervalRef.current = null
-      }
+    if (!qrcodeImage) {
       return
     }
 
+    // 設定目標時間：當前時間 + 300秒（5分鐘）
+    // 使用 Date.now() 計算，避免瀏覽器休眠導致倒數暫停
+    const endTime = Date.now() + 300 * 1000
+
+    if (qrcodeExpiryIntervalRef.current) {
+      clearInterval(qrcodeExpiryIntervalRef.current)
+    }
+
     qrcodeExpiryIntervalRef.current = setInterval(() => {
-      setQrcodeExpiry(prev => {
-        if (prev <= 1) {
-          return 0
+      const remaining = Math.ceil((endTime - Date.now()) / 1000)
+
+      if (remaining <= 0) {
+        setQrcodeExpiry(0)
+        if (qrcodeExpiryIntervalRef.current) {
+          clearInterval(qrcodeExpiryIntervalRef.current)
+          qrcodeExpiryIntervalRef.current = null
         }
-        return prev - 1
-      })
+      } else {
+        setQrcodeExpiry(remaining)
+      }
     }, 1000)
 
     return () => {
@@ -149,7 +158,7 @@ function App() {
         clearInterval(qrcodeExpiryIntervalRef.current)
       }
     }
-  }, [qrcodeExpiry, qrcodeImage])
+  }, [qrcodeImage])
 
   // 輪詢檢查註冊狀態 (GET /register/result)
   useEffect(() => {
