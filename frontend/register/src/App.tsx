@@ -67,7 +67,13 @@ function App() {
         }
 
         if (response.ok) {
-          const data = await response.json()
+          let data: { email?: string } = {}
+          try {
+            data = await response.json()
+          } catch {
+            setError('伺服器回應格式錯誤')
+            return
+          }
           if (data.email) {
             setEmail(data.email)
             setTokenExpired(false)
@@ -75,7 +81,12 @@ function App() {
             setError('無法取得註冊資訊')
           }
         } else {
-          const errorData = await response.json()
+          let errorData: { error?: string } = {}
+          try {
+            errorData = await response.json()
+          } catch {
+            // 回應不是 JSON 格式，忽略解析錯誤
+          }
           // 檢查是否為 token 不存在或已過期的錯誤
           if (response.status === 404 && errorData.error === 'token 不存在或已過期') {
             setTokenExpired(true)
@@ -172,7 +183,13 @@ function App() {
           `${API_BASE_URL}/register/result?transactionId=${transactionId}`
         )
         if (response.ok) {
-          const data: RegistrationResult = await response.json()
+          let data: RegistrationResult
+          try {
+            data = await response.json()
+          } catch {
+            console.error('檢查註冊狀態失敗: 伺服器回應格式錯誤')
+            return
+          }
           // 如果是 "Waiting for registration" 訊息，繼續輪詢
           if (data.message === 'Waiting for registration') {
             console.log('等待註冊:', data.message)
@@ -187,10 +204,20 @@ function App() {
           }
         } else if (response.status === 400) {
           // 還在等待驗證，繼續輪詢
-          const data = await response.json()
+          let data: { message?: string } = {}
+          try {
+            data = await response.json()
+          } catch {
+            // 回應不是 JSON 格式，忽略
+          }
           console.log('等待註冊:', data.message)
         } else {
-          const errorData = await response.json()
+          let errorData: { error?: string } = {}
+          try {
+            errorData = await response.json()
+          } catch {
+            // 回應不是 JSON 格式，忽略
+          }
           console.error('檢查註冊狀態失敗:', errorData)
         }
       } catch (err) {

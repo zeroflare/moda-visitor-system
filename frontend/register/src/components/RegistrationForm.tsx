@@ -140,7 +140,12 @@ export function RegistrationForm({
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
+        let errorData: { error?: string } = {}
+        try {
+          errorData = await response.json()
+        } catch {
+          // 回應不是 JSON 格式，忽略解析錯誤
+        }
         if (response.status === 429) {
           // 冷卻期錯誤
           setOtpCooldown(60)
@@ -151,7 +156,11 @@ export function RegistrationForm({
         throw new Error(errorData.error || '發送驗證碼失敗')
       }
 
-      await response.json()
+      try {
+        await response.json()
+      } catch {
+        // 成功回應但不是 JSON 格式，忽略
+      }
       setOtpSent(true)
       setOtpCooldown(60) // 設置 60 秒冷卻期
       setOtpExpiry(600) // 設置 10 分鐘有效期
@@ -278,7 +287,12 @@ export function RegistrationForm({
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
+        let errorData: { error?: string } = {}
+        try {
+          errorData = await response.json()
+        } catch {
+          // 回應不是 JSON 格式，忽略解析錯誤
+        }
         // 檢查是否為 token 不存在或已過期的錯誤
         if (response.status === 404 && errorData.error === 'token 不存在或已過期') {
           throw new Error('token 不存在或已過期')
@@ -286,7 +300,12 @@ export function RegistrationForm({
         throw new Error(errorData.error || '註冊失敗')
       }
 
-      const data: QRCodeResponse = await response.json()
+      let data: QRCodeResponse
+      try {
+        data = await response.json()
+      } catch {
+        throw new Error('伺服器回應格式錯誤')
+      }
       setError('')
       onSubmit(data)
     } catch (err) {
