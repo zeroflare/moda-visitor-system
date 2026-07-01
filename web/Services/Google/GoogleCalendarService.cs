@@ -15,7 +15,6 @@ public class GoogleCalendarService : IGoogleCalendarService
     private readonly ILogger<GoogleCalendarService> _logger;
     private readonly IGoogleAuthService _authService;
     private readonly ApplicationDbContext _context;
-    private readonly IEmployeeService _employeeService;
     private readonly string _calendarId;
     private CalendarService? _cachedService;
     private readonly SemaphoreSlim _serviceLock = new(1, 1);
@@ -24,14 +23,12 @@ public class GoogleCalendarService : IGoogleCalendarService
         IConfiguration configuration,
         ILogger<GoogleCalendarService> logger,
         IGoogleAuthService authService,
-        ApplicationDbContext context,
-        IEmployeeService employeeService)
+        ApplicationDbContext context)
     {
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _authService = authService ?? throw new ArgumentNullException(nameof(authService));
         _context = context ?? throw new ArgumentNullException(nameof(context));
-        _employeeService = employeeService ?? throw new ArgumentNullException(nameof(employeeService));
         _calendarId = _configuration["Google:CalendarId"] ?? "primary";
     }
 
@@ -146,6 +143,8 @@ public class GoogleCalendarService : IGoogleCalendarService
                 {
                     _cachedService = null;
                 }
+
+                _context.ChangeTracker.Clear();
                 
                 await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, retryCount)), cancellationToken);
             }
@@ -187,6 +186,8 @@ public class GoogleCalendarService : IGoogleCalendarService
 
     private async Task SyncEventsToDatabaseInternalAsync(List<Event> events, CancellationToken cancellationToken)
     {
+        _context.ChangeTracker.Clear();
+
         var syncedMeetings = 0;
         var syncedVisitors = 0;
 
@@ -231,8 +232,10 @@ public class GoogleCalendarService : IGoogleCalendarService
                     continue;
                 }
 
-                // 從 employees 表獲取 inviter 的 dept 和 title
-                var inviterEmployee = await _employeeService.GetEmployeeByEmailAsync(organizerEmail);
+                // 從 employees 表獲取 inviter 的 dept 和 title（唯讀查詢，避免污染 Change Tracker）
+                var inviterEmployee = await _context.Employees
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(e => e.Email == organizerEmail, cancellationToken);
                 var inviterDept = inviterEmployee?.Dept;
                 var inviterTitle = inviterEmployee?.Title;
                 var inviterName = inviterEmployee?.Name;
@@ -252,9 +255,9 @@ public class GoogleCalendarService : IGoogleCalendarService
                 }
 
                 // 同步或更新 meeting
+                Meeting meeting;
                 if (existingMeetings.TryGetValue(evt.Id, out var existingMeeting))
                 {
-                    // 更新現有會議
                     existingMeeting.MeetingName = evt.Summary ?? "無標題會議";
                     existingMeeting.InviterEmail = organizerEmail;
                     existingMeeting.InviterName = inviterName;
@@ -263,11 +266,11 @@ public class GoogleCalendarService : IGoogleCalendarService
                     existingMeeting.StartAt = startTime;
                     existingMeeting.EndAt = endTime;
                     existingMeeting.MeetingroomId = meetingRoomId;
+                    meeting = existingMeeting;
                 }
                 else
                 {
-                    // 創建新會議
-                    var meeting = new Meeting
+                    meeting = new Meeting
                     {
                         Id = evt.Id,
                         MeetingName = evt.Summary ?? "無標題會議",
@@ -280,7 +283,7 @@ public class GoogleCalendarService : IGoogleCalendarService
                         MeetingroomId = meetingRoomId
                     };
                     _context.Meetings.Add(meeting);
-                    existingMeetings[evt.Id] = meeting; // 加入字典以便後續使用
+                    existingMeetings[evt.Id] = meeting;
                 }
 
                 syncedMeetings++;
@@ -302,7 +305,8 @@ public class GoogleCalendarService : IGoogleCalendarService
                         var visitor = new Visitor
                         {
                             VisitorEmail = attendeeEmail,
-                            MeetingId = evt.Id,
+                            MeetingId = meeting.Id,
+                            Meeting = meeting,
                             CreatedAt = now
                         };
                         _context.Visitors.Add(visitor);

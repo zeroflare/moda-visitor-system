@@ -11,5 +11,6 @@ public class Visitor
     public DateTime? CreatedAt { get; set; }
     public string MeetingId { get; set; } = string.Empty;
     public bool Notified { get; set; }
+    public Meeting? Meeting { get; set; }
 }
 

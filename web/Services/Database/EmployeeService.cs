@@ -51,6 +51,8 @@ public class EmployeeService : IEmployeeService
 
     public async Task<int> SyncEmployeesAsync(IEnumerable<Employee> employees)
     {
+        _context.ChangeTracker.Clear();
+
         var syncedCount = 0;
         var createdCount = 0;
         var updatedCount = 0;
@@ -80,18 +82,13 @@ public class EmployeeService : IEmployeeService
                 
                 if (existing != null)
                 {
-                    // 更新現有員工
-                    // 如果新員工有 ID 但現有員工沒有，更新 ID
                     if (!string.IsNullOrWhiteSpace(employee.Id) && existing.Id != employee.Id)
                     {
-                        // 檢查新 ID 是否已被其他員工使用
-                        var idExists = await _context.Employees.AnyAsync(e => e.Id == employee.Id && e.Email != employee.Email);
-                        if (!idExists)
-                        {
-                            existing.Id = employee.Id;
-                        }
+                        _logger.LogWarning(
+                            "Employee ID mismatch for {Email}: database has {ExistingId}, Google People has {GoogleId}. Keeping database ID and updating other fields only.",
+                            employee.Email, existing.Id, employee.Id);
                     }
-                    
+
                     existing.Name = employee.Name;
                     existing.Dept = employee.Dept;
                     existing.Costcenter = employee.Costcenter;

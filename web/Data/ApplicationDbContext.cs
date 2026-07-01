@@ -77,6 +77,10 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
             entity.Property(e => e.MeetingId).HasMaxLength(255).IsRequired().HasColumnName("meeting_id");
             entity.Property(e => e.Notified).IsRequired().HasColumnName("notified").HasDefaultValue(false);
+            entity.HasOne(v => v.Meeting)
+                .WithMany()
+                .HasForeignKey(v => v.MeetingId)
+                .OnDelete(DeleteBehavior.NoAction);
             entity.ToTable("visitors");
             
             // 建立索引
